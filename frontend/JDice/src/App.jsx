@@ -1,50 +1,21 @@
-import { useEffect, useState } from "react";
-import { api } from "../services/api";
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import LoginPage from "./pages/LoginPage";
+import Dashboard from "./pages/Dashboard";
+import ApiConsuming from "./pages/ApiConsuming";
+import ModelosPage from "./pages/ModelosPage";
+import EnviarPage from "./pages/EnviarPage";
 
 function App() {
-  const [nodes, setNodes] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    api.get("/api/templates/list")
-    .then((resp) => {
-      setNodes(resp.data);
-      setError(null);
-    })
-    .catch((err) => {
-      console.error("Erro ao buscar templates: ", err);
-      setError(
-        err.response?.data?.message || err.message || "Não foi possivel carregar a lista."
-      );
-      setNodes(null)
-    })
-    .finally(() => {
-      setLoading(false);
-    }) 
-  }, []);
-
-  if (loading) {
-    return (
-      <div>
-        <h1>Templates</h1>
-        <p>Carregando...</p>
-      </div>
-    );
-  } 
-  
-  if (error) {
-    <div>
-      <h1>Templates</h1>
-      <p>Erro: {error}</p>
-    </div>;
-  }
-
   return (
-    <div>
-      <h1>Templates</h1>
-      <pre>{JSON.stringify(nodes, null, 2)}</pre>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<ApiConsuming />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/modelosPage" element={<ModelosPage />} />
+        <Route path="/enviar" element={<EnviarPage />} />
+      </Routes>
+    </Router>
   );
 }
 

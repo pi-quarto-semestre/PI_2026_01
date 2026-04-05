@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.deeremail.DTOs.FileNode;
+import com.deeremail.utils.Config;
 import com.deeremail.utils.FileStructure;
 
 @RestController
@@ -20,11 +21,11 @@ import com.deeremail.utils.FileStructure;
 @RequestMapping("/api/templates")
 public class templatesController {
 
-    // Caminho fixo por enquanto, alterar durante o desenvolvimento
-    private String templatePath = "/home/guilherme/Documents/PI_2026_1/dev/mailTemplates";
+    // Pega o caminho da pasta de modelos do arquivo de configuração
+    private String templatePath = Config.getTemplatesFolderPath();
 
     @GetMapping("/list")
-    //lista as pastas e os arquivos existentes dentro em uma estrutura de json com a hierarquia
+    // lista as pastas e os arquivos existentes dentro em uma estrutura de json com a hierarquia
     public FileNode getFiles() throws IOException {
         return FileStructure.getFolderStructure(templatePath);
     }

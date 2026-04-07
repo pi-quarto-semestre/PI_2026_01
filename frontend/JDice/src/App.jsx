@@ -4,6 +4,7 @@ import Dashboard from "./pages/Dashboard";
 import ApiConsuming from "./pages/ApiConsuming";
 import ModelosPage from "./pages/ModelosPage";
 import EnviarPage from "./pages/EnviarPage";
+import NotFoundPage from "./pages/NotFoundPage";
 
 function App() {
   return (
@@ -14,6 +15,9 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/modelosPage" element={<ModelosPage />} />
         <Route path="/enviar" element={<EnviarPage />} />
+        <Route path="/erro" element={<NotFoundPage />} />
+        {/* Rota catch-all para páginas não encontradas */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Router>
   );

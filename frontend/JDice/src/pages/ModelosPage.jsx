@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import HeaderNav from "../components/HeaderNav";
 import { getRoute } from "../components/navRoutes";
+import { HEADER_NAV_ITEMS } from "../components/HeaderNav";
+import ApiConsuming from "./ApiConsuming";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap');
@@ -155,10 +157,35 @@ const styles = `
   /* ── TABLE ── */
   .table-wrap {
     background: var(--white); border-radius: 14px;
-    overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    display: flex; flex-direction: column; max-height: 600px; overflow: hidden;
   }
 
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; overflow:auto}
+
+  .table-wrap table {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .table-wrap thead {
+    flex-shrink: 0;
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  .table-wrap tbody {
+    display: block;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .table-wrap tbody tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+  }
 
   thead tr { background: var(--green-btn); }
   thead th {
@@ -168,7 +195,7 @@ const styles = `
     white-space: nowrap;
   }
 
-  tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+  .table-wrap tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
   tbody tr:last-child { border-bottom: none; }
   tbody tr:hover { background: var(--row-hover); }
   tbody tr.sub-row { background: #f9fafb; }
@@ -483,18 +510,19 @@ const ImportIcon = ({ s = 14 }) => (
 );
 
 // ── Data ──
+// Retornar do backend uma estrutura mais ou menos dessa forma para deixar a tabela dinamica
 const MODELS = [
   {
-    id: 1,
+    id: 0,
     icon: "🌾",
-    name: "Campanha Safrinha",
-    file: "campanha_safrinha.html",
-    category: "Marketing Agrícola",
-    versions: ["v1", "v2", "v2.3"],
-    current: "v2.3",
-    tagStyle: ["grey", "grey", "yellow"],
-    lastEdit: "28/03/2025",
-    sends: 32,
+    name: "Teste123",
+    file: "",
+    category: "",
+    versions: [],
+    current: "",
+    tagStyle: [],
+    lastEdit: "",
+    sends: null,
     subVersions: [
       {
         ver: "Versão 2.3",
@@ -503,74 +531,7 @@ const MODELS = [
         status: "Ativa",
         icon: "🌾",
       },
-      {
-        ver: "Versão 2.0",
-        date: "10/02/2025 — Carlos Mendes",
-        desc: "Reformulação visual completa",
-        status: "Inativa",
-        icon: "🌾",
-      },
     ],
-  },
-  {
-    id: 2,
-    icon: "🚜",
-    name: "Lançamento S780i",
-    file: "lancamento_s780i.html",
-    category: "Produtos e Lançamentos",
-    versions: ["v1.0"],
-    current: "v1.0",
-    tagStyle: ["green"],
-    lastEdit: "25/03/2025",
-    sends: 8,
-  },
-  {
-    id: 3,
-    icon: "📄",
-    name: "Relatório Mensal Gerentes",
-    file: "relatorio_mensal_ger.html",
-    category: "Comunicados Internos",
-    versions: ["v1", "v2", "v3", "v4.1"],
-    current: "v4.1",
-    tagStyle: ["grey", "grey", "grey", "blue"],
-    lastEdit: "01/04/2025",
-    sends: 156,
-  },
-  {
-    id: 4,
-    icon: "🎯",
-    name: "Newsletter Revendas",
-    file: "newsletter_revendas.html",
-    category: "Canal de Vendas",
-    versions: ["v1", "v1.2"],
-    current: "v1.2",
-    tagStyle: ["grey", "yellow"],
-    lastEdit: "20/03/2025",
-    sends: 74,
-  },
-  {
-    id: 5,
-    icon: "🌿",
-    name: "Convite Evento Field Day",
-    file: "convite_field_day.html",
-    category: "Eventos",
-    versions: ["v1.0"],
-    current: "v1.0",
-    tagStyle: ["green"],
-    lastEdit: "15/03/2025",
-    sends: 19,
-  },
-  {
-    id: 6,
-    icon: "⚙️",
-    name: "Alerta Manutenção Preventiva",
-    file: "alerta_manutencao.html",
-    category: "Pós-venda",
-    versions: ["v1", "v2.0"],
-    current: "v2.0",
-    tagStyle: ["grey", "yellow"],
-    lastEdit: "05/03/2025",
-    sends: 203,
   },
 ];
 
@@ -581,7 +542,7 @@ export default function ModelosPage() {
   const [expanded, setExpanded] = useState({ 1: true });
   const [viewMode, setViewMode] = useState("list");
   const [activePage, setActivePage] = useState(1);
-  const navItems = ["Dashboard", "Modelos", "Envios"];
+  const navItems = HEADER_NAV_ITEMS;
 
   const handleNavClick = (item) => {
     setActiveNav(item);

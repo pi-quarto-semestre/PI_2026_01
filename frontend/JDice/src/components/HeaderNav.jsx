@@ -1,6 +1,7 @@
+/* eslint-disable react-refresh/only-export-components */
 import React from "react";
 
-const HEADER_NAV_ITEMS = ["Dashboard", "Modelos", "Envios"];
+export const HEADER_NAV_ITEMS = ["Dashboard", "Modelos", "Envios"];
 
 export default function HeaderNav({
   activeNav,

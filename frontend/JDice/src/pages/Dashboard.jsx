@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import HeaderNav from "../components/HeaderNav";
 import { getRoute } from "../components/navRoutes";
+import { HEADER_NAV_ITEMS } from "../components/HeaderNav";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap');
@@ -655,7 +656,7 @@ const models = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState("Dashboard");
-  const navItems = ["Dashboard", "Modelos", "Envios"];
+  const navItems = HEADER_NAV_ITEMS;
 
   const handleNavClick = (item) => {
     setActiveNav(item);

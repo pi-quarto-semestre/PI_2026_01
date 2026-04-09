@@ -442,9 +442,7 @@ export default function NotFoundPage() {
           </div>
 
           {/* FOOTER */}
-          <footer className="footer">
-            John Deere Mail Manager — Plataforma de uso interno © 2025
-          </footer>
+          <Footer/>
         </div>
       </div>
     </>

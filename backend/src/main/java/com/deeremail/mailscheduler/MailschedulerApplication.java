@@ -6,8 +6,11 @@ import java.io.IOException;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.PropertySource;
 
 import com.deeremail.utils.Config;
+
+@PropertySource("file:settings.ini")
 
 @ComponentScan("com.deeremail.controllers")
 @ComponentScan("com.deeremail.DTOs")

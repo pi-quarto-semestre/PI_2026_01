@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import HeaderNav from "../components/HeaderNav";
 import { getRoute } from "../components/navRoutes";
 import { HEADER_NAV_ITEMS } from "../components/HeaderNav";
 import ApiConsuming from "./ApiConsuming";
+import { api } from "../../services/api";
+import Footer from "../components/Footer";
+import { useErrorHandler } from "../hooks/useErrorHandler";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap');
@@ -509,49 +512,70 @@ const ImportIcon = ({ s = 14 }) => (
   </svg>
 );
 
-// ── Data ──
-// Retornar do backend uma estrutura mais ou menos dessa forma para deixar a tabela dinamica
-const MODELS = [
-  {
-    id: 0,
-    icon: "🌾",
-    name: "Teste123",
-    file: "",
-    category: "",
-    versions: [],
-    current: "",
-    tagStyle: [],
-    lastEdit: "",
-    sends: null,
-    subVersions: [
-      {
-        ver: "Versão 2.3",
-        date: "28/03/2025 — Maria Alves",
-        desc: "Ajuste no CTA e cores da safrinha",
-        status: "Ativa",
-        icon: "🌾",
-      },
-    ],
-  },
-];
+const normalizeTemplates = (root) => {
+  return (root.children || []).map((template) => {
+    const versions = (template.children || []).filter((item) => item.directory);
+    const versionLabels = versions.map((v) => v.name);
+
+    return {
+      id: template.path,
+      icon: "📄",
+      name: template.name,
+      file: versionLabels.join(", "),
+      category: "Padrão",
+      versions: versionLabels,
+      tagStyle: versionLabels.map(() => "grey"),
+      current: versionLabels[0] || "",
+      lastEdit: "",
+      sends: "",
+      subVersions: versions.map((version) => ({
+        ver: version.name,
+        date: "",
+        desc: `Arquivos: ${version.children?.length || 0}`,
+        status: version.children?.length ? "Ativa" : "Inativa",
+        icon: "📄",
+      })),
+    };
+  });
+};
 
 export default function ModelosPage() {
   const navigate = useNavigate();
+  const navItems = HEADER_NAV_ITEMS;
   const [activeNav, setActiveNav] = useState("Modelos");
-  const [search, setSearch] = useState("");
-  const [expanded, setExpanded] = useState({ 1: true });
   const [viewMode, setViewMode] = useState("list");
   const [activePage, setActivePage] = useState(1);
-  const navItems = HEADER_NAV_ITEMS;
+
+  const [models, setModels] = useState([]);
+  // eslint-disable-next-line no-unused-vars
+  const [loading, setLoading] = useState(true);
+  const { handleError } = useErrorHandler();
+  const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState({ 1: true });
 
   const handleNavClick = (item) => {
     setActiveNav(item);
     navigate(getRoute(item));
   };
 
+  useEffect(() => {
+    api
+      .get("/api/templates/list")
+      .then((resp) => {
+        setModels(normalizeTemplates(resp.data));
+      })
+      .catch((err) => {
+        handleError(err);
+        setModels([]);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
   const toggle = (id) => setExpanded((p) => ({ ...p, [id]: !p[id] }));
 
-  const filtered = MODELS.filter(
+  const filtered = models.filter(
     (m) =>
       m.name.toLowerCase().includes(search.toLowerCase()) ||
       m.category.toLowerCase().includes(search.toLowerCase()),
@@ -584,7 +608,10 @@ export default function ModelosPage() {
                 <button className="btn-secondary">
                   <ImportIcon s={14} /> Importar
                 </button>
-                <button className="btn-primary">
+                <button
+                  className="btn-primary"
+                  onClick={() => navigate("/criarTemplate")}
+                >
                   <PlusIcon s={14} /> Novo
                 </button>
               </div>
@@ -634,12 +661,10 @@ export default function ModelosPage() {
               <table>
                 <thead>
                   <tr>
-                    <th style={{ width: 280 }}>Modelo</th>
-                    <th style={{ width: 200 }}>Categoria</th>
-                    <th style={{ width: 180 }}>Versões</th>
-                    <th style={{ width: 80 }}>Atual</th>
-                    <th style={{ width: 120 }}>Última Edição</th>
-                    <th style={{ width: 70 }}>Envios</th>
+                    <th>Modelo</th>
+                    <th>Categoria</th>
+                    <th>Versões</th>
+                    <th>Status</th>
                     <th>Ações</th>
                   </tr>
                 </thead>
@@ -789,9 +814,7 @@ export default function ModelosPage() {
           </div>
 
           {/* FOOTER */}
-          <footer className="footer">
-            John Deere Mail Manager — Plataforma de uso interno © 2025
-          </footer>
+          <Footer />
         </div>
       </div>
     </>

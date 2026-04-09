@@ -87,6 +87,8 @@ const GearIcon = ({ size = 16 }) => (
   </svg>
 );
 
+
+
 export default function Sidebar({ activeNav, onNavClick }) {
   return (
     <aside className="sidebar">

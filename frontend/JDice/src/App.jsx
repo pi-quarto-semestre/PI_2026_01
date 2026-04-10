@@ -11,13 +11,13 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<ApiConsuming />} />
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<LoginPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/modelosPage" element={<ModelosPage />} />
         <Route path="/enviar" element={<EnviarPage />} />
         <Route path="/criarTemplate" element={<NovoTemplatePage />} />
         <Route path="/erro" element={<NotFoundPage />} />
+        <Route path="/apiConsuming" element={<ApiConsuming />} />
         {/* Rota catch-all para páginas não encontradas */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

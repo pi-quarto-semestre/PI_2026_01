@@ -4,6 +4,7 @@ import Sidebar from "../components/Sidebar";
 import HeaderNav from "../components/HeaderNav";
 import { getRoute } from "../components/navRoutes";
 import { HEADER_NAV_ITEMS } from "../components/HeaderNav";
+import Footer from "../components/Footer";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap');
@@ -442,7 +443,7 @@ export default function NotFoundPage() {
           </div>
 
           {/* FOOTER */}
-          <Footer/>
+          <Footer />
         </div>
       </div>
     </>

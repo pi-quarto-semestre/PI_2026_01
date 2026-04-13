@@ -33,11 +33,9 @@ git clone https://github.com/pi-quarto-semestre/PI_2026_01.git
 
 ## Banco de dados
 
-O banco de dados é **PostgreSQL hospedado no Supabase** (nuvem, região São Paulo).
+Por padrão, o projeto usa **PostgreSQL local**. As tabelas são criadas automaticamente pelo Flyway na primeira execução do backend.
 
-Não é necessário instalar nenhum banco localmente. As tabelas são criadas automaticamente pelo Flyway na primeira execução do backend.
-
-Para configurar o acesso ao banco, siga o passo 3 das [instruções do backend](backend/README.md).
+Opcionalmente, é possível usar o banco na nuvem via Supabase. Veja as [instruções do backend](backend/README.md) para mais detalhes.
 
 ---
 
@@ -46,7 +44,6 @@ Para configurar o acesso ao banco, siga o passo 3 das [instruções do backend](
 | Camada | Tecnologia |
 |---|---|
 | Frontend | React 18 + Vite + React Router + Axios |
-| Backend | Java 21 + Spring Boot 4 + Spring Security + JPA |
-| Banco | PostgreSQL (Supabase) |
+| Backend | Java 21 + Spring Boot 4 + JPA |
+| Banco | PostgreSQL (local ou Supabase) |
 | Migrations | Flyway |
-| Storage | Supabase Storage |

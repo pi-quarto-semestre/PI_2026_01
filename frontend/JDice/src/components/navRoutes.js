@@ -7,7 +7,7 @@ export const getRoute = (item) => {
     case "Envios":
       return "/enviar";
     case "Relatórios":
-      return "/apiConsuming";
+      return "/";
     default:
       return "/";
   }

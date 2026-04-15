@@ -1,145 +1,32 @@
-[Página inicial](../README.md) | [Como contribuir: Backend](README.md) | [Como contribuir: Frontend](../frontend/README.md)
-
-# Instruções para o Backend
-
-## Pré-requisitos
-
-- [Java 21+](https://adoptium.net/)
-- Maven (já incluso no projeto via `mvnw`)
-- Conta gratuita no [Supabase](https://supabase.com)
-- IDE de sua preferência (Eclipse, IntelliJ, VS Code)
-
-> **Não é necessário instalar PostgreSQL localmente.** O banco de dados roda no Supabase (nuvem).
-
----
-
+[Página inicial](README.md) | [Como contribuir: Backend](backend/README.md) | [Como contribuir: Frontend](frontend/README.md)
+# Instruções para o backend
 ## Como rodar
+### 1. Clone o projeto a partir deste repositório:  
+	
+	https://github.com/pi-quarto-semestre/PI_2026_01.git
+	
+### 2. Dentro da pasta do projeto, abra a pasta backend em sua IDE de preferência.  
+#### 2.1 Exemplo: Eclipse IDE
 
-### 1. Clone o repositório
+No caso do Eclipse, por exemplo, simplesmente importe o projeto: 
 
-```bash
-git clone https://github.com/pi-quarto-semestre/PI_2026_01.git
-```
+    Menu File > Open Projects from File System... > Directory
+    
+E selecione a pasta do projeto.
 
-### 2. Crie um projeto no Supabase
+Não é necessário executar nenhum comando específico para baixar ou fazer build de bibliotecas. Você já pode começar a contribuir!
 
-1. Acesse [supabase.com](https://supabase.com) e crie uma conta gratuita
-2. Clique em **New project** e preencha:
-   - **Name:** qualquer nome (ex: `hermes`)
-   - **Database password:** crie uma senha forte e **guarde-a**
-   - **Region:** South America (São Paulo)
-3. Aguarde o projeto ser criado (cerca de 1 minuto)
+### 3. Crie o database
+- Para testar o código com uma conexão à base de dados, é necessário instalar e ter uma instância ativa do [postgresql](https://www.postgresql.org/download/)
+- Após instalar, crie uma base de dados chamada `DeereMail`
+- Na database criada, execute o Script `CreateDatabase.sql`, presente na raiz da pasta backend
 
-### 3. Configure o `settings.ini`
+### 4. Crie o arquivo `settings.ini`
+Duplique o arquivo `settings.exmple.ini` com o nome `settings.ini` e defina os parâmetros da sua aplicação.
 
-Na pasta `backend/`, copie o arquivo de exemplo:
-
-```bash
-cp settings.exemplo.ini settings.ini
-```
-
-Agora preencha o `settings.ini` com os valores do seu projeto Supabase:
-
----
-
-**`supabase.projectUrl`**
-
-No dashboard do Supabase: **Settings → API → Project URL**
-
-```
-supabase.projectUrl=https://xxxxxxxxxxxx.supabase.co
-```
-
----
-
-**`supabase.serviceRoleKey`**
-
-No dashboard do Supabase: **Settings → API → API Keys → service_role → Copy**
-
-```
-supabase.serviceRoleKey=eyJhbGci...
-```
-
----
-
-**`sql.url`**
-
-No dashboard do Supabase: **Settings → Database → Connection string → JDBC**
-
-Substitua `[YOUR-PASSWORD]` pela senha que você definiu na criação do projeto.
-
-```
-sql.url=jdbc:postgresql://db.xxxxxxxxxxxx.supabase.co:5432/postgres?sslmode=require
-```
-
----
-
-**`sql.user`**
-
-```
-sql.user=postgres
-```
-
----
-
-**`sql.password`**
-
-A senha que você definiu na criação do projeto Supabase.
-
-```
-sql.password=sua_senha_aqui
-```
-
----
-
-**`storage.bucketName`**
-
-```
-storage.bucketName=templates
-```
-
----
-
-> Os valores de `hash.*` já estão preenchidos no `settings.exemplo.ini` e não precisam ser alterados.
-
-### 4. Abra o projeto na sua IDE
-
-No Eclipse: `File > Open Projects from File System... > Directory` e selecione a pasta `backend`.
+Atenção especial para o usuário e a senha da sua instância do postgres
 
 ### 5. Execute o projeto
+Para a execução em runtime de teste, utilize a função de laucher de sua IDE de preferência
 
-Pelo terminal dentro da pasta `backend`:
 
-```bash
-./mvnw spring-boot:run
-```
-
-Na **primeira execução**, o Flyway criará automaticamente todas as tabelas no seu banco do Supabase. Nenhum script SQL precisa ser rodado manualmente.
-
-O backend estará disponível em `http://localhost:8080`.
-
----
-
-## Banco de dados
-
-As tabelas são criadas e versionadas automaticamente pelo **Flyway** a partir dos arquivos em:
-
-```
-src/main/resources/db/migration/
-├── V1__create_users.sql
-├── V2__create_api_keys.sql
-├── V3__create_templates.sql
-├── V4__create_template_versions.sql
-└── V5__create_email_sends.sql
-```
-
-### Adicionando novas tabelas ou alterações no schema
-
-**Nunca altere um arquivo de migration existente.** Crie sempre um novo arquivo com o próximo número:
-
-```
-V6__add_coluna_xyz.sql
-V7__create_tabela_abc.sql
-```
-
-O Flyway detecta automaticamente os arquivos novos e aplica apenas o que ainda não foi executado no banco.

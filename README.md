@@ -1,52 +1,18 @@
 [Página inicial](README.md) | [Como contribuir: Backend](backend/README.md) | [Como contribuir: Frontend](frontend/README.md)
-
-# Hermes — Sistema Central de Notificações
-
-Projeto integrador do 1º semestre de 2026 (4º semestre) — Fatec Indaiatuba em parceria com a **John Deere**.
-
-O Hermes é uma plataforma centralizada para envio e agendamento de comunicações por e-mail, permitindo que diferentes times utilizem um único serviço com suporte a templates, versionamento e agendamento.
-
----
-
-## Estrutura do projeto
-
-```
-PI_2026_01/
-├── backend/    → API REST em Java com Spring Boot
-└── frontend/   → Interface web em React + Vite
-```
+# PI 2026-01
+Projeto integrador de conteúdo do primeiro semestre de 2026 - 4º semestre geral do curso.
 
 ## Como rodar
 
-### 1. Clone o repositório
+O projeto é dividido em duas partes, sendo o frontend desenvolvido em um projeto React e o backend desenvolvido em Java com Spring Boot. 
 
-```bash
-git clone https://github.com/pi-quarto-semestre/PI_2026_01.git
-```
+As duas partes estão presentes nesse mesmo repositório, embora sejam tratadas em runtime como projetos diferentes
 
-### 2. Siga as instruções específicas de cada parte
+### 1. Clone o projeto a partir deste repositório:  
+	
+	https://github.com/pi-quarto-semestre/PI_2026_01.git
 
-- [Backend (Java / Spring Boot)](backend/README.md)
-- [Frontend (React / Vite)](frontend/README.md)
+### 2. Siga as instruções específicas de contribuição para [Frontend](frontend/README.md) ou [Backend](backend/README.md)
+	
 
----
 
-## Banco de dados
-
-O banco de dados é **PostgreSQL hospedado no Supabase** (nuvem, região São Paulo).
-
-Não é necessário instalar nenhum banco localmente. As tabelas são criadas automaticamente pelo Flyway na primeira execução do backend.
-
-Para configurar o acesso ao banco, siga o passo 3 das [instruções do backend](backend/README.md).
-
----
-
-## Stack
-
-| Camada | Tecnologia |
-|---|---|
-| Frontend | React 18 + Vite + React Router + Axios |
-| Backend | Java 21 + Spring Boot 4 + Spring Security + JPA |
-| Banco | PostgreSQL (Supabase) |
-| Migrations | Flyway |
-| Storage | Supabase Storage |

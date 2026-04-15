@@ -1,33 +1,4 @@
 // Reusable sidebar for all pages
-
-const styles = `
-
-/* ── SIDEBAR ── */
-  .sidebar {
-    width: 52px; background: var(--green-dark);
-    display: flex; flex-direction: column; align-items: center;
-    padding: 12px 0 16px; gap: 4px; flex-shrink: 0;
-  }
-  .sidebar-logo {
-    width: 32px; height: 32px; background: var(--yellow); border-radius: 7px;
-    display: flex; align-items: center; justify-content: center;
-    font-family: 'Sora', sans-serif; font-weight: 800; font-size: 12px; color: #1a1a1a;
-    margin-bottom: 18px;
-    cursor:pointer;
-  }
-    
-  .sidebar-icon {
-    width: 36px; height: 36px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    color: rgba(255,255,255,0.45); cursor: pointer;
-    border: none; background: transparent; transition: all .18s;
-  }
-  .sidebar-icon:hover { background: rgba(255,255,255,0.1); color: #fff; }
-  .sidebar-spacer { flex: 1; }
-
-`
-
-
 const GridIcon = ({ size = 16 }) => (
   <svg
     width={size}
@@ -116,14 +87,10 @@ const GearIcon = ({ size = 16 }) => (
   </svg>
 );
 
-
-
 export default function Sidebar({ activeNav, onNavClick }) {
   return (
-    <>
-    <style>{styles}</style>
     <aside className="sidebar">
-      <div className="sidebar-logo" onClick={() => onNavClick("Dashboard")}><p className="JD">JD</p></div>
+      <div className="sidebar-logo">JD</div>
 
       <button
         className={`sidebar-icon ${activeNav === "Dashboard" ? "active" : ""}`}
@@ -158,6 +125,5 @@ export default function Sidebar({ activeNav, onNavClick }) {
         <GearIcon size={18} />
       </button>
     </aside>
-     </>
   );
 }

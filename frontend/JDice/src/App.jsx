@@ -5,17 +5,21 @@ import ApiConsuming from "./pages/ApiConsuming";
 import ModelosPage from "./pages/ModelosPage";
 import EnviarPage from "./pages/EnviarPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import NovoTemplatePage from "./pages/NovoTemplatePage";
+import DestinatariosPage from "./pages/DestinatariosPage";
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<ApiConsuming />} />
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<LoginPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/modelosPage" element={<ModelosPage />} />
         <Route path="/enviar" element={<EnviarPage />} />
+        <Route path="/criarTemplate" element={<NovoTemplatePage />} />
         <Route path="/erro" element={<NotFoundPage />} />
+        <Route path="/apiConsuming" element={<ApiConsuming />} />
+        <Route path="/destinatarios" element={<DestinatariosPage />} />
         {/* Rota catch-all para páginas não encontradas */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

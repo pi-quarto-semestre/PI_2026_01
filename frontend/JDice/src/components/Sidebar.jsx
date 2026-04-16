@@ -25,6 +25,91 @@ const styles = `
   .sidebar-icon:hover { background: rgba(255,255,255,0.1); color: #fff; }
   .sidebar-spacer { flex: 1; }
 
+/* ───────────────────────────── */
+/* 📱 TABLET (até 1024px) */
+/* ───────────────────────────── */
+@media (max-width: 1024px) {
+
+  .sidebar {
+    width: 48px;
+    padding: 10px 0;
+  }
+
+  .sidebar-logo {
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
+    margin-bottom: 14px;
+  }
+
+  .sidebar-icon {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+
+/* ───────────────────────────── */
+/* 📱 MOBILE (até 768px) */
+/* ───────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Sidebar vira bottom bar */
+  .sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+
+    padding: 6px 10px;
+    z-index: 1000;
+  }
+
+  /* Esconde logo no mobile */
+  .sidebar-logo {
+    display: none;
+  }
+
+  /* Ícones maiores para toque */
+  .sidebar-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+  }
+
+  /* Remove spacer */
+  .sidebar-spacer {
+    display: none;
+  }
+
+  /* IMPORTANTE: evita conteúdo ficar atrás da barra */
+  .content {
+    padding-bottom: 80px;
+  }
+}
+
+
+/* ───────────────────────────── */
+/* 📱 SMALL MOBILE (até 480px) */
+/* ───────────────────────────── */
+@media (max-width: 480px) {
+
+  .sidebar {
+    height: 56px;
+  }
+
+  .sidebar-icon {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+
 `
 
 

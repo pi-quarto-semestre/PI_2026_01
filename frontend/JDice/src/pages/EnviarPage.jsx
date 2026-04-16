@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import HeaderNav from "../components/HeaderNav";
@@ -6,6 +6,9 @@ import { getRoute } from "../hooks/navRoutes";
 import { HEADER_NAV_ITEMS } from "../components/HeaderNav";
 import Footer from "../components/Footer";
 import { StylesEnviarPages } from "../css/StyleEnviarPages";
+import { api } from "../../services/api";
+import { useErrorHandler } from "../hooks/useErrorHandler";
+import { Stepper } from "../components/Stepper";
 
 // ── Icons ──
 const ChevDown = ({ s = 12 }) => (
@@ -65,37 +68,103 @@ const XIcon = ({ s = 12 }) => (
   </svg>
 );
 
-// ── Steps config ──
-const STEPS = [
-  { num: 1, name: "Modelo", sub: "Selecione o modelo" },
-  { num: 2, name: "Variáveis", sub: "Personalize o conteúdo" },
-  { num: 3, name: "Destinatários", sub: "Defina os alvos" },
-  { num: 4, name: "Envio", sub: "Agende ou envie" },
-];
+const normalizeTemplates = (root) => {
+  return (root.children || []).map((template) => {
+    const versions = (template.children || []).filter((item) => item.directory);
+    const versionLabels = versions.map((v) => v.name);
+
+    return {
+      id: template.path,
+      name: template.name,
+      file: versionLabels.join(", "),
+      subVersions: versions.map((version) => ({
+        ver: version.name,
+      })),
+    };
+  });
+};
 
 export default function EnviarPage() {
+  const [errors, setErrors] = useState({
+    selectedModel: "",
+    versao: "",
+    nomeContato: "",
+    produto: "",
+  });
   const navigate = useNavigate();
-  const [activeNav, setActiveNav] = useState("Envios");
-  const [currentStep, setCurrentStep] = useState(2); // 1-indexed; screenshot shows step 2 active
-  const [modelo, setModelo] = useState("Campanha Safrinha");
+  const [activeNav, setActiveNav] = useState("Envios"); // ✅ começa no passo 1
+
+  const [selectedModel, setSelectedModel] = useState(""); // ✅ ID do modelo selecionado
+  const [versions, setVersions] = useState([]); // ✅ versões do modelo atual
+  const [versao, setVersao] = useState(""); // ✅ versão selecionada
+
+  // Variáveis do template
+  const [nomeContato, setNomeContato] = useState(""); // ✅ separado do estado do modelo
+  const [regiao, setRegiao] = useState("Sul");
+  const [produto, setProduto] = useState("");
+
+  const navItems = HEADER_NAV_ITEMS;
+  const [models, setModels] = useState([]);
+  const { handleError } = useErrorHandler();
+  // eslint-disable-next-line no-unused-vars
+  const [loading, setLoading] = useState(true);
 
   const handleNavClick = (item) => {
     setActiveNav(item);
     navigate(getRoute(item));
   };
-  const [versao, setVersao] = useState("v2.3 — Versão mais recente");
-  const [nome, setNome] = useState("");
-  const [regiao, setRegiao] = useState("Sul");
-  const [produto, setProduto] = useState(
-    "John Deere S780 — Colhetadeira de Grãos",
-  );
 
-  const navItems = HEADER_NAV_ITEMS;
+  // ✅ Ao trocar modelo, atualiza as versões disponíveis
+  const handleModelChange = (e) => {
+    const selectedId = e.target.value;
+    setSelectedModel(selectedId);
+    setVersao("");
 
-  const stepState = (n) => {
-    if (n < currentStep) return "done";
-    if (n === currentStep) return "active";
-    return "idle";
+    if (!selectedId) {
+      setVersions([]);
+      return;
+    }
+
+    const found = models.find((m) => m.id === selectedId);
+    const subs = found?.subVersions || [];
+    setVersions(subs);
+    if (subs.length > 0) setVersao(subs[0].ver);
+  };
+
+  useEffect(() => {
+    api
+      .get("/api/templates/list")
+      .then((resp) => {
+        setModels(normalizeTemplates(resp.data));
+      })
+      .catch((err) => {
+        handleError(err);
+        setModels([]);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  // ✅ Modelo atualmente selecionado (objeto completo)
+  const currentModel = models.find((m) => m.id === selectedModel) || null;
+
+  const handleNext = () => {
+    const newErrors = {
+      selectedModel: !selectedModel ? "Selecione um modelo" : "",
+      versao: !versao ? "Selecione uma versão" : "",
+      nomeContato: !nomeContato.trim()
+        ? "Nome do contato não pode estar vazio"
+        : "",
+      produto: !produto.trim() ? "Produto não pode estar vazio" : "",
+    };
+
+    setErrors(newErrors);
+
+    const hasError = Object.values(newErrors).some((e) => e !== "");
+    if (!hasError) {
+      navigate("/destinatarios");
+    }
   };
 
   return (
@@ -111,7 +180,6 @@ export default function EnviarPage() {
             navItems={navItems}
           />
 
-          {/* CONTENT */}
           <div className="content">
             {/* Page Header */}
             <div className="page-header">
@@ -122,33 +190,7 @@ export default function EnviarPage() {
             </div>
 
             {/* Stepper */}
-            <div className="stepper">
-              {STEPS.map((step, idx) => (
-                <div
-                  key={step.num}
-                  style={{ display: "flex", alignItems: "center", flex: 1 }}
-                >
-                  <div
-                    className={`step ${stepState(step.num)}`}
-                    style={{ cursor: "pointer" }}
-                    onClick={() => setCurrentStep(step.num)}
-                  >
-                    <div className={`step-circle ${stepState(step.num)}`}>
-                      {stepState(step.num) === "done" ? "✓" : step.num}
-                    </div>
-                    <div className="step-label">
-                      <span className="s-name">{step.name}</span>
-                      <span className="s-sub">{step.sub}</span>
-                    </div>
-                  </div>
-                  {idx < STEPS.length - 1 && (
-                    <div
-                      className={`step-line ${stepState(step.num) === "done" ? "done" : ""}`}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
+            <Stepper numeroPasso={1}/>
 
             {/* Body */}
             <div className="body-layout">
@@ -163,24 +205,36 @@ export default function EnviarPage() {
                     </div>
                   </div>
 
+                  {/* Select Modelo */}
                   <div className="field">
                     <label>Modelo</label>
                     <div className="select-wrap">
                       <select
-                        value={modelo}
-                        onChange={(e) => setModelo(e.target.value)}
+                        value={selectedModel}
+                        id="templateName"
+                        onChange={handleModelChange}
                       >
-                        <option>Campanha Safrinha</option>
-                        <option>Lançamento S780i</option>
-                        <option>Relatório Mensal Gerentes</option>
-                        <option>Newsletter Revendas</option>
+                        <option value="" disabled>
+                          Selecione um modelo...
+                        </option>
+                        {models.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name}
+                          </option>
+                        ))}
                       </select>
                       <span className="select-arrow">
                         <ChevDown s={13} />
                       </span>
                     </div>
+                    {errors.selectedModel && (
+                      <span className="field-error">
+                        {errors.selectedModel}
+                      </span>
+                    )}
                   </div>
 
+                  {/* Select Versão */}
                   <div className="field">
                     <label>Versão do Modelo</label>
                     <div className="version-row">
@@ -188,10 +242,21 @@ export default function EnviarPage() {
                         <select
                           value={versao}
                           onChange={(e) => setVersao(e.target.value)}
+                          disabled={!selectedModel || versions.length === 0}
                         >
-                          <option>v2.3 — Versão mais recente</option>
-                          <option>v2.0 — Reformulação visual</option>
-                          <option>v1.0 — Versão original</option>
+                          {versions.length === 0 ? (
+                            <option value="">
+                              {selectedModel
+                                ? "Nenhuma versão disponível"
+                                : "Selecione um modelo primeiro"}
+                            </option>
+                          ) : (
+                            versions.map((v) => (
+                              <option key={v.ver} value={v.ver}>
+                                {v.ver}
+                              </option>
+                            ))
+                          )}
                         </select>
                         <span className="select-arrow">
                           <ChevDown s={13} />
@@ -201,23 +266,33 @@ export default function EnviarPage() {
                         Ver histórico de versões →
                       </button>
                     </div>
+                    {errors.versao && (
+                      <span className="field-error">{errors.versao}</span>
+                    )}
                   </div>
 
-                  {/* Model info card */}
+                  {/* ✅ Model preview card dinâmico */}
                   <div className="model-preview-card">
                     <div className="model-thumb">🌾</div>
                     <div className="model-info">
-                      <div className="m-name">Campanha Safrinha v2.3</div>
+                      <div className="m-name">
+                        {currentModel
+                          ? `${currentModel.name}${versao ? ` — ${versao}` : ""}`
+                          : "Nenhum modelo selecionado"}
+                      </div>
                       <div className="m-meta">
-                        Marketing Agrícola · Última edição: 28/03/2025 · 32
-                        envios
+                        {currentModel
+                          ? `Arquivos: ${currentModel.file || "—"}`
+                          : "Selecione um modelo para ver os detalhes"}
                       </div>
                       <div className="m-vars">
                         3 variáveis identificadas: {"{nome_contato}"},{" "}
                         {"{regiao}"}, {"{produto}"}
                       </div>
                     </div>
-                    <button className="btn-preview">Pré-visualizar →</button>
+                    <button className="btn-preview" disabled={!currentModel}>
+                      Pré-visualizar →
+                    </button>
                   </div>
                 </div>
 
@@ -239,9 +314,18 @@ export default function EnviarPage() {
                       <input
                         type="text"
                         placeholder="Ex. João Silva"
-                        value={nome}
-                        onChange={(e) => setNome(e.target.value)}
+                        value={nomeContato}
+                        onChange={(e) => {
+                          setNomeContato(e.target.value);
+                          if (errors.nomeContato)
+                            setErrors((prev) => ({ ...prev, nomeContato: "" })); // limpa erro ao digitar
+                        }}
                       />
+                      {errors.nomeContato && (
+                        <span className="field-error">
+                          {errors.nomeContato}
+                        </span>
+                      )}
                     </div>
                     <div className="field">
                       <label>{"{regiao}"}</label>
@@ -263,28 +347,31 @@ export default function EnviarPage() {
                     </div>
                   </div>
 
+                  {/* Input produto */}
                   <div className="field" style={{ marginTop: 4 }}>
                     <label>{"{produto}"}</label>
                     <input
                       type="text"
                       value={produto}
-                      onChange={(e) => setProduto(e.target.value)}
+                      onChange={(e) => {
+                        setProduto(e.target.value);
+                        if (errors.produto)
+                          setErrors((prev) => ({ ...prev, produto: "" })); // limpa erro ao digitar
+                      }}
                     />
+                    {errors.produto && (
+                      <span className="field-error">{errors.field}</span>
+                    )}
                   </div>
                 </div>
 
                 {/* Navigation */}
                 <div className="form-nav">
-                  <button
-                    className="btn-back"
-                    onClick={() => setCurrentStep((s) => Math.max(1, s - 1))}
-                  >
+                  <button className="btn-back">
                     <ChevLeft s={13} /> Voltar
                   </button>
-                  <button
-                    className="btn-next"
-                    onClick={() => setCurrentStep((s) => Math.min(4, s + 1))}
-                  >
+                  {/* Botão com handleNext */}
+                  <button className="btn-next" onClick={handleNext}>
                     Próximo: Destinatários <ChevRight s={13} />
                   </button>
                 </div>
@@ -301,7 +388,6 @@ export default function EnviarPage() {
                   </div>
 
                   <div className="email-mock">
-                    {/* Browser-like dots */}
                     <div className="mock-window-bar">
                       <div className="mock-dot red" />
                       <div className="mock-dot yellow" />
@@ -309,16 +395,19 @@ export default function EnviarPage() {
                     </div>
 
                     <div className="mock-email">
-                      {/* Email top bar */}
                       <div className="mock-top-bar">
                         <div className="mock-logo-badge">JD</div>
                         <div className="mock-top-text">
                           <div className="t1">John Deere</div>
-                          <div className="t2">Campanha Safrinha 2025</div>
+                          <div className="t2">
+                            {/* ✅ dinâmico com fallback */}
+                            {currentModel
+                              ? `${currentModel.name}${versao ? ` — ${versao}` : ""}`
+                              : "Campanha Safrinha 2025"}
+                          </div>
                         </div>
                       </div>
 
-                      {/* Hero */}
                       <div className="mock-hero">
                         <div className="mock-hero-emoji">🌾</div>
                         <div className="mock-hero-title">
@@ -328,12 +417,11 @@ export default function EnviarPage() {
                         </div>
                       </div>
 
-                      {/* Body */}
                       <div className="mock-body">
                         <div className="mock-greeting">
-                          Olá,{" "}
-                          {nome ? (
-                            <strong>{nome}</strong>
+                          Olá, {/* ✅ usa nomeContato agora */}
+                          {nomeContato ? (
+                            <strong>{nomeContato}</strong>
                           ) : (
                             <span style={{ color: "#9ca3af" }}>
                               {"{nome_contato}"}
@@ -349,7 +437,6 @@ export default function EnviarPage() {
                         <div className="mock-cta">Ver oferta da Safrinha →</div>
                       </div>
 
-                      {/* Footer */}
                       <div className="mock-footer">
                         © 2025 John Deere — Uso interno · Descadastrar
                         <br />
@@ -365,7 +452,6 @@ export default function EnviarPage() {
             </div>
           </div>
 
-          {/* FOOTER */}
           <Footer />
         </div>
       </div>

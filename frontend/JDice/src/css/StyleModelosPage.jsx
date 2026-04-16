@@ -266,11 +266,166 @@ const styles = `
   .dropzone-text a { color: var(--green-btn); font-weight: 600; text-decoration: none; cursor: pointer; }
   .dropzone-sub { font-size: 11.5px; color: #b0b7c0; margin-top: 4px; }
 
-  /* ── FOOTER ── */
-  .footer {
-    padding: 12px 28px; font-size: 11.5px; color: var(--muted);
-    background: var(--green-light); border-top: 1px solid var(--border); flex-shrink: 0;
+  /* ───────────────────────────── */
+/* 📱 TABLET (até 1024px) */
+/* ───────────────────────────── */
+@media (max-width: 1024px) {
+
+  .content {
+    padding: 20px;
   }
+
+  .page-header h1 {
+    font-size: 19px;
+  }
+
+  .search-wrap {
+    flex: 0 0 200px;
+  }
+
+  .table-wrap {
+    max-height: none;
+  }
+}
+
+
+/* ───────────────────────────── */
+/* 📱 MOBILE (até 768px) */
+/* ───────────────────────────── */
+@media (max-width: 768px) {
+
+  /* CONTENT */
+  .content {
+    padding: 16px;
+    gap: 14px;
+  }
+
+  /* HEADER */
+  .page-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* TOOLBAR */
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .search-wrap {
+    width: 100%;
+    flex: none;
+  }
+
+  .filter-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .toolbar-spacer {
+    display: none;
+  }
+
+  .view-toggle {
+    justify-content: center;
+  }
+
+  /* TABLE */
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  table {
+    min-width: 700px; /* força scroll horizontal */
+  }
+
+  .table-footer {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  /* MODEL CELL */
+  .model-name-text {
+    font-size: 12px;
+  }
+
+  .model-file {
+    font-size: 10px;
+  }
+
+  /* ACTIONS */
+  .actions-cell {
+    gap: 6px;
+  }
+
+  .act-link {
+    font-size: 11.5px;
+  }
+
+  /* DROPZONE */
+  .dropzone {
+    padding: 24px 16px;
+  }
+
+  .dropzone-text {
+    font-size: 12.5px;
+  }
+}
+
+
+/* ───────────────────────────── */
+/* 📱 SMALL MOBILE (até 480px) */
+/* ───────────────────────────── */
+@media (max-width: 480px) {
+
+  .page-header h1 {
+    font-size: 17px;
+  }
+
+  .page-header .page-sub {
+    font-size: 11.5px;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+
+  .search-wrap input {
+    height: 36px;
+    font-size: 12px;
+  }
+
+  .filter-btn {
+    height: 36px;
+    font-size: 12px;
+  }
+
+  .view-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .table-footer {
+    font-size: 11.5px;
+  }
+}
+
 `;
 
 export function StylesModelosPage() {

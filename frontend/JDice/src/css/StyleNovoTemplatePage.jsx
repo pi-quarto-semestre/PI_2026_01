@@ -29,32 +29,6 @@ const styles = `
   /* ── MAIN ── */
   .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
-  /* ── TOPBAR ── */
-  .topbar {
-    height: 52px; background: var(--green-dark);
-    display: flex; align-items: center; padding: 0 24px; flex-shrink: 0;
-  }
-  .topbar-brand { display: flex; flex-direction: column; margin-right: 40px; }
-  .brand-name { font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; color: #fff; line-height: 1.2; }
-  .brand-sub  { font-size: 9px; font-weight: 600; letter-spacing: 1.2px; color: rgba(255,255,255,0.5); text-transform: uppercase; }
-  .topbar-nav { display: flex; align-items: center; gap: 4px; flex: 1; }
-  .nav-link {
-    padding: 6px 16px; font-size: 13px; font-weight: 500;
-    color: rgba(255,255,255,0.65); cursor: pointer;
-    border-bottom: 2px solid transparent; transition: color .16s;
-    background: none; border-top: none; border-left: none; border-right: none;
-    font-family: 'Inter', sans-serif;
-  }
-  .nav-link:hover { color: #fff; }
-  .nav-link.active { color: #fff; border-bottom-color: var(--yellow); }
-  .topbar-user { display: flex; align-items: center; gap: 10px; margin-left: auto; }
-  .user-name { font-size: 12px; font-weight: 600; color: #fff; }
-  .user-role { font-size: 10.5px; color: rgba(255,255,255,0.55); text-align: right; }
-  .user-avatar {
-    width: 32px; height: 32px; background: var(--yellow); border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-family: 'Sora', sans-serif; font-size: 11px; font-weight: 700; color: #1a1a1a;
-  }
 
   /* ── CONTENT ── */
   .content { flex: 1; overflow-y: auto; padding: 24px 28px 36px; display: flex; flex-direction: column; gap: 20px; }

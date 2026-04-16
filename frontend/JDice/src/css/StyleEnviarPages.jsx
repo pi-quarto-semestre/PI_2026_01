@@ -24,33 +24,6 @@ const styles = `
   /* ── MAIN ── */
   .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
-  /* ── TOPBAR ── */
-  .topbar {
-    height: 52px; background: var(--green-dark);
-    display: flex; align-items: center; padding: 0 24px; flex-shrink: 0;
-  }
-  .topbar-brand { display: flex; flex-direction: column; margin-right: 40px; }
-  .brand-name { font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; color: #fff; line-height: 1.2; }
-  .brand-sub  { font-size: 9px; font-weight: 600; letter-spacing: 1.2px; color: rgba(255,255,255,0.5); text-transform: uppercase; }
-  .topbar-nav { display: flex; align-items: center; gap: 4px; flex: 1; }
-  .nav-link {
-    padding: 6px 16px; font-size: 13px; font-weight: 500;
-    color: rgba(255,255,255,0.65); cursor: pointer;
-    border-bottom: 2px solid transparent; transition: color .16s;
-    background: none; border-top: none; border-left: none; border-right: none;
-    font-family: 'Inter', sans-serif;
-  }
-  .nav-link:hover { color: #fff; }
-  .nav-link.active { color: #fff; border-bottom-color: var(--yellow); }
-  .topbar-user { display: flex; align-items: center; gap: 10px; margin-left: auto; }
-  .user-info { text-align: right; }
-  .user-name { font-size: 12px; font-weight: 600; color: #fff; }
-  .user-role { font-size: 10.5px; color: rgba(255,255,255,0.55); }
-  .user-avatar {
-    width: 32px; height: 32px; background: var(--yellow); border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-family: 'Sora', sans-serif; font-size: 11px; font-weight: 700; color: #1a1a1a;
-  }
 
   /* ── CONTENT ── */
   .content {
@@ -63,42 +36,6 @@ const styles = `
     font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 800; color: var(--text);
   }
   .page-sub { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
-
-  /* ── STEPPER ── */
-  .stepper {
-    display: flex; align-items: center; gap: 0;
-    background: var(--white); border-radius: 10px;
-    padding: 12px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-  }
-  .step { display: flex; align-items: center; gap: 8px; flex: 1; }
-  .step-circle {
-    width: 26px; height: 26px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 11.5px; font-weight: 700; flex-shrink: 0;
-    font-family: 'Sora', sans-serif; border: 2px solid transparent;
-  }
-  .step-circle.done   { background: var(--step-done); color: #fff; border-color: var(--step-done); }
-  .step-circle.active { background: var(--step-active); color: #fff; border-color: var(--step-active); }
-  .step-circle.idle   { background: #fff; color: var(--muted); border-color: var(--step-idle); }
-
-  .step-label { display: flex; flex-direction: column; }
-  .step-label .s-name {
-    font-size: 12px; font-weight: 600;
-    color: var(--text);
-  }
-  .step-label .s-sub { font-size: 10.5px; color: var(--muted); }
-  .step.idle .step-label .s-name { color: var(--muted); }
-
-  .step-line {
-    flex: 1; height: 2px; background: var(--step-idle); margin: 0 10px;
-    position: relative; max-width: 60px;
-  }
-  .step-line.done { background: var(--step-done); }
-  .step-line::before {
-    content: ''; position: absolute; top: 50%; left: 0; right: 0;
-    border-top: 2px dashed #c9d9c9; transform: translateY(-50%);
-  }
-  .step-line.done::before { border-top-color: var(--step-done); border-top-style: solid; }
 
   /* ── BODY LAYOUT ── */
   .body-layout { display: flex; gap: 16px; flex: 1; min-height: 0; }
@@ -298,6 +235,188 @@ const styles = `
     padding: 8px 12px; background: #f9fafb; border-top: 1px solid var(--border);
     font-size: 8px; color: var(--muted); line-height: 1.5;
   }
+    
+    .field-error {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #ef4444;
+}
+
+/* ───────────────────────────── */
+/* 📱 TABLET (até 1024px) */
+/* ───────────────────────────── */
+@media (max-width: 1024px) {
+
+  .body-layout {
+    flex-direction: column;
+  }
+
+  .preview-panel {
+    width: 100%;
+  }
+
+  .vars-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stepper {
+    overflow-x: auto;
+    padding: 10px 12px;
+  }
+
+  .step {
+    min-width: 140px;
+  }
+
+  .step-line {
+    max-width: 40px;
+  }
+}
+
+
+/* ───────────────────────────── */
+/* 📱 MOBILE (até 768px) */
+/* ───────────────────────────── */
+@media (max-width: 768px) {
+
+  /* APP */
+  .app {
+    flex-direction: column;
+    height: auto;
+  }
+
+  /* TOPBAR */
+  .topbar {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 10px 16px;
+    gap: 10px;
+  }
+
+  .topbar-brand {
+    margin-right: 0;
+  }
+
+  .topbar-nav {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .nav-link {
+    white-space: nowrap;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .topbar-user {
+    margin-left: 0;
+  }
+
+  /* CONTENT */
+  .content {
+    padding: 16px;
+  }
+
+  /* HEADER */
+  .page-header h1 {
+    font-size: 18px;
+  }
+
+  .page-sub {
+    font-size: 11.5px;
+  }
+
+  /* CARDS */
+  .section-card {
+    padding: 16px;
+  }
+
+  /* STEP */
+  .step-label .s-sub {
+    display: none;
+  }
+
+  /* INPUTS */
+  .field input,
+  .select-wrap select {
+    height: 38px;
+    font-size: 12.5px;
+  }
+
+  /* VERSION ROW */
+  .version-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .version-link {
+    align-self: flex-start;
+  }
+
+  /* BUTTONS */
+  .form-nav {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .btn-back,
+  .btn-next {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* PREVIEW */
+  .preview-panel {
+    width: 100%;
+  }
+
+  .preview-card {
+    margin-top: 10px;
+  }
+
+  /* EMAIL MOCK SCALE */
+  .mock-email {
+    font-size: 9px;
+  }
+}
+
+
+/* ───────────────────────────── */
+/* 📱 SMALL MOBILE (até 480px) */
+/* ───────────────────────────── */
+@media (max-width: 480px) {
+
+  .brand-name {
+    font-size: 12px;
+  }
+
+  .brand-sub {
+    font-size: 8px;
+  }
+
+  .user-name {
+    font-size: 11px;
+  }
+
+  .user-role {
+    font-size: 10px;
+  }
+
+  .page-header h1 {
+    font-size: 16px;
+  }
+
+  .section-num h2 {
+    font-size: 13px;
+  }
+
+  .step-circle {
+    width: 22px;
+    height: 22px;
+    font-size: 10px;
+  }
+}
 
 `;
 

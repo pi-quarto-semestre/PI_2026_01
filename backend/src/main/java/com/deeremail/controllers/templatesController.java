@@ -2,7 +2,8 @@ package com.deeremail.controllers;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -10,9 +11,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.deeremail.DTOs.FileNode;
 import com.deeremail.utils.Config;
@@ -41,11 +42,21 @@ public class templatesController {
 
     @GetMapping("/template")
     // Retorna o modelo da versão especificada como texto e seus parâmetros como um array
-    public Map<String, Object> getTemplate() throws IOException {
+    public Map<String, Object> getTemplate(
+        @RequestParam String name,
+        @RequestParam String version
+    ) throws IOException {
         
         // Monta o caminho da pasta para o modelo html
-        ClassPathResource resource = new ClassPathResource("/home/guilherme/Documents/PI_2026_1/dev/mailTemplates/teste/v1/template.html");
-        String content = StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
+        String fullModelPath = templatePath + "/" + name + "/" + version + "/template.html";
+        String content;
+        try{
+            content = Files.readString(Path.of(fullModelPath));
+        }
+        catch (java.nio.file.NoSuchFileException e){
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource not found");
+        }
+        
 
         // Encontra todos os parâmetros no formato ${parametro}
         Pattern pattern = Pattern.compile("\\$\\{([^}]+)}");

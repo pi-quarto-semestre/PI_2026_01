@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -63,7 +63,7 @@ public class templatesController {
         Matcher matcher = pattern.matcher(content);
 
         // Cria a lista de parâmetros
-        Set<String> params = new HashSet<>();
+        Set<String> params = new LinkedHashSet<>();
 
         // Percorre os parâmetros encontrados e adiciona eles na lista
         while (matcher.find()) {

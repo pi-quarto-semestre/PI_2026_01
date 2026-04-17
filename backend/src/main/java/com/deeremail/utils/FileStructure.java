@@ -10,6 +10,7 @@ import com.deeremail.DTOs.FileNode;
 
 public class FileStructure {
 
+    // Struct de nodo para representar pastas e arquivos
     public static FileNode getFolderStructure(String pathStr) throws IOException {
         Path rootPath = Paths.get(pathStr);
         if (!Files.exists(rootPath) || !Files.isDirectory(rootPath)) {
@@ -18,6 +19,7 @@ public class FileStructure {
         return buildTree(rootPath);
     }
 
+    // Percorre recursivamente as pastas a partir de um caminho raiz e gera uma árvore de nodos
     private static FileNode buildTree(Path path) throws IOException {
         String name = path.getFileName().toString();
         FileNode node = new FileNode(name, path.toString(), Files.isDirectory(path));
@@ -35,4 +37,6 @@ public class FileStructure {
         }
         return node;
     }
+
+
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import HeaderNav from "../components/HeaderNav";
@@ -9,6 +9,7 @@ import { StylesEnviarPages } from "../css/StyleEnviarPages";
 import { api } from "../../services/api";
 import { useErrorHandler } from "../hooks/useErrorHandler";
 import { Stepper } from "../components/Stepper";
+import DestinatariosPage from "./DestinatariosPage";
 
 // ── Icons ──
 const ChevDown = ({ s = 12 }) => (
@@ -84,41 +85,62 @@ const normalizeTemplates = (root) => {
   });
 };
 
+const formatVariableToken = (variable) => `{${variable}}`;
+
+const formatVariableName = (variable) =>
+  variable.replace(/[_-]+/g, " ").trim();
+
+const buildVariableState = (parameters, currentValues = {}) =>
+  parameters.reduce((acc, parameter) => {
+    acc[parameter] = currentValues[parameter] ?? "";
+    return acc;
+  }, {});
+
 export default function EnviarPage() {
   const [errors, setErrors] = useState({
     selectedModel: "",
     versao: "",
-    nomeContato: "",
-    produto: "",
   });
   const navigate = useNavigate();
-  const [activeNav, setActiveNav] = useState("Envios"); // ✅ começa no passo 1
+  const [activeNav, setActiveNav] = useState("Envios"); 
 
-  const [selectedModel, setSelectedModel] = useState(""); // ✅ ID do modelo selecionado
-  const [versions, setVersions] = useState([]); // ✅ versões do modelo atual
-  const [versao, setVersao] = useState(""); // ✅ versão selecionada
+  const [selectedModel, setSelectedModel] = useState(""); 
+  const [versions, setVersions] = useState([]); 
+  const [versao, setVersao] = useState(""); 
 
-  // Variáveis do template
-  const [nomeContato, setNomeContato] = useState(""); // ✅ separado do estado do modelo
-  const [regiao, setRegiao] = useState("Sul");
-  const [produto, setProduto] = useState("");
+  const [templateData, setTemplateData] = useState({
+    content: "",
+    parameters: [],
+  });
+  const [templateVariables, setTemplateVariables] = useState({});
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [templateError, setTemplateError] = useState("");
+  const [sectionStatus, setSectionStatus] = useState({
+    section3Complete: false,
+    section4Complete: false,
+  });
 
   const navItems = HEADER_NAV_ITEMS;
   const [models, setModels] = useState([]);
   const { handleError } = useErrorHandler();
   // eslint-disable-next-line no-unused-vars
   const [loading, setLoading] = useState(true);
+  const currentModel = models.find((m) => m.id === selectedModel) || null;
 
   const handleNavClick = (item) => {
     setActiveNav(item);
     navigate(getRoute(item));
   };
 
-  // ✅ Ao trocar modelo, atualiza as versões disponíveis
   const handleModelChange = (e) => {
     const selectedId = e.target.value;
     setSelectedModel(selectedId);
     setVersao("");
+    setErrors({ selectedModel: "", versao: "" });
+    setTemplateData({ content: "", parameters: [] });
+    setTemplateVariables({});
+    setTemplateLoading(false);
+    setTemplateError("");
 
     if (!selectedId) {
       setVersions([]);
@@ -128,7 +150,10 @@ export default function EnviarPage() {
     const found = models.find((m) => m.id === selectedId);
     const subs = found?.subVersions || [];
     setVersions(subs);
-    if (subs.length > 0) setVersao(subs[0].ver);
+    if (subs.length > 0) {
+      setTemplateLoading(true);
+      setVersao(subs[0].ver);
+    }
   };
 
   useEffect(() => {
@@ -144,26 +169,162 @@ export default function EnviarPage() {
       .finally(() => {
         setLoading(false);
       });
-  }, []);
+  }, [handleError]);
 
-  // ✅ Modelo atualmente selecionado (objeto completo)
-  const currentModel = models.find((m) => m.id === selectedModel) || null;
+  useEffect(() => {
+    if (!currentModel || !versao) {
+      return;
+    }
+
+    let isMounted = true;
+
+    api
+      .get("/api/templates/template", {
+        params: {
+          name: currentModel.name,
+          version: versao,
+        },
+      })
+      .then((resp) => {
+        if (!isMounted) return;
+
+        const parameters = Array.isArray(resp.data?.parameters)
+          ? resp.data.parameters
+          : [];
+
+        setTemplateData({
+          content: resp.data?.content || "",
+          parameters,
+        });
+        setTemplateVariables((prev) => buildVariableState(parameters, prev));
+        setErrors((prev) => {
+          const nextErrors = {
+            selectedModel: prev.selectedModel || "",
+            versao: prev.versao || "",
+          };
+
+          parameters.forEach((parameter) => {
+            nextErrors[parameter] = prev[parameter] || "";
+          });
+
+          return nextErrors;
+        });
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+
+        setTemplateData({ content: "", parameters: [] });
+        setTemplateVariables({});
+
+        if (err.response?.status === 404) {
+          setTemplateError(
+            "Não foi possível encontrar o template da versão selecionada.",
+          );
+          return;
+        }
+
+        setTemplateError("Não foi possível carregar as variáveis do template.");
+
+        if (!err.response || err.response.status >= 500) {
+          handleError(err);
+          return;
+        }
+
+        console.error("Erro ao carregar template:", err);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setTemplateLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentModel, versao, handleError]);
+
+  const handleVariableChange = (parameter, value) => {
+    setTemplateVariables((prev) => ({
+      ...prev,
+      [parameter]: value,
+    }));
+
+    if (errors[parameter]) {
+      setErrors((prev) => ({
+        ...prev,
+        [parameter]: "",
+      }));
+    }
+  };
+
+  const templateParameters = templateData.parameters;
+  const section1Complete = Boolean(selectedModel && versao);
+  const section2Filled =
+    section1Complete &&
+    !templateLoading &&
+    !templateError &&
+    templateParameters.every((parameter) =>
+      Boolean(templateVariables[parameter]?.trim()),
+    );
+  const step1Done = section1Complete;
+  const step2Done = step1Done && section2Filled;
+  const step3Done = step2Done && sectionStatus.section3Complete;
+  const step4Done = step3Done && sectionStatus.section4Complete;
+  const completedSteps = [
+    ...(step1Done ? [1] : []),
+    ...(step2Done ? [2] : []),
+    ...(step3Done ? [3] : []),
+    ...(step4Done ? [4] : []),
+  ];
+
+  const handleSectionStatusChange = useCallback(
+    ({ section3Complete, section4Complete }) => {
+      setSectionStatus({
+        section3Complete,
+        section4Complete,
+      });
+    },
+    [],
+  );
+
+  const templateVariablesText = templateLoading
+    ? "Carregando variáveis do modelo..."
+    : templateError
+      ? templateError
+      : currentModel && versao
+        ? templateParameters.length > 0
+          ? `${templateParameters.length} variáveis identificadas: ${templateParameters
+              .map(formatVariableToken)
+              .join(", ")}`
+          : "Nenhuma variável identificada neste modelo."
+        : "Selecione um modelo e uma versão para carregar as variáveis.";
 
   const handleNext = () => {
+    if (templateLoading) return;
+
+    const variableErrors = templateParameters.reduce((acc, parameter) => {
+      if (!templateVariables[parameter]?.trim()) {
+        acc[parameter] = `${formatVariableName(parameter)} não pode estar vazio`;
+      }
+
+      return acc;
+    }, {});
+
     const newErrors = {
       selectedModel: !selectedModel ? "Selecione um modelo" : "",
       versao: !versao ? "Selecione uma versão" : "",
-      nomeContato: !nomeContato.trim()
-        ? "Nome do contato não pode estar vazio"
-        : "",
-      produto: !produto.trim() ? "Produto não pode estar vazio" : "",
+      ...variableErrors,
     };
+
+    if (templateError) {
+      newErrors.versao = templateError;
+    }
 
     setErrors(newErrors);
 
     const hasError = Object.values(newErrors).some((e) => e !== "");
     if (!hasError) {
-      navigate("/destinatarios");
+      // Rodar a rotina para envio e e-mail AQUI (eu acho)
     }
   };
 
@@ -188,9 +349,8 @@ export default function EnviarPage() {
                 Compose e agende sua campanha em 4 passos simples
               </p>
             </div>
-
             {/* Stepper */}
-            <Stepper numeroPasso={1}/>
+            <Stepper numeroPasso={1} completedSteps={completedSteps} />
 
             {/* Body */}
             <div className="body-layout">
@@ -241,7 +401,17 @@ export default function EnviarPage() {
                       <div className="select-wrap">
                         <select
                           value={versao}
-                          onChange={(e) => setVersao(e.target.value)}
+                          onChange={(e) => {
+                            setVersao(e.target.value);
+                            setErrors((prev) => ({
+                              selectedModel: prev.selectedModel || "",
+                              versao: "",
+                            }));
+                            setTemplateData({ content: "", parameters: [] });
+                            setTemplateVariables({});
+                            setTemplateLoading(true);
+                            setTemplateError("");
+                          }}
                           disabled={!selectedModel || versions.length === 0}
                         >
                           {versions.length === 0 ? (
@@ -285,10 +455,7 @@ export default function EnviarPage() {
                           ? `Arquivos: ${currentModel.file || "—"}`
                           : "Selecione um modelo para ver os detalhes"}
                       </div>
-                      <div className="m-vars">
-                        3 variáveis identificadas: {"{nome_contato}"},{" "}
-                        {"{regiao}"}, {"{produto}"}
-                      </div>
+                      <div className="m-vars">{templateVariablesText}</div>
                     </div>
                     <button className="btn-preview" disabled={!currentModel}>
                       Pré-visualizar →
@@ -308,62 +475,48 @@ export default function EnviarPage() {
                     </div>
                   </div>
 
-                  <div className="vars-grid">
-                    <div className="field">
-                      <label>{"{nome_contato}"}</label>
-                      <input
-                        type="text"
-                        placeholder="Ex. João Silva"
-                        value={nomeContato}
-                        onChange={(e) => {
-                          setNomeContato(e.target.value);
-                          if (errors.nomeContato)
-                            setErrors((prev) => ({ ...prev, nomeContato: "" })); // limpa erro ao digitar
-                        }}
-                      />
-                      {errors.nomeContato && (
-                        <span className="field-error">
-                          {errors.nomeContato}
-                        </span>
-                      )}
+                  {templateLoading ? (
+                    <p className="section-sub">Carregando variáveis do template...</p>
+                  ) : templateError ? (
+                    <span className="field-error">{templateError}</span>
+                  ) : !currentModel || !versao ? (
+                    <p className="section-sub">
+                      Selecione um modelo e uma versão para carregar os campos.
+                    </p>
+                  ) : templateParameters.length === 0 ? (
+                    <p className="section-sub">
+                      O modelo selecionado não possui variáveis para preencher.
+                    </p>
+                  ) : (
+                    <div className="vars-grid">
+                      {templateParameters.map((parameter) => (
+                        <div className="field" key={parameter}>
+                          <label>{formatVariableToken(parameter)}</label>
+                          <input
+                            type="text"
+                            placeholder={`Informe ${formatVariableName(parameter)}`}
+                            value={templateVariables[parameter] || ""}
+                            onChange={(e) =>
+                              handleVariableChange(parameter, e.target.value)
+                            }
+                          />
+                          {errors[parameter] && (
+                            <span className="field-error">
+                              {errors[parameter]}
+                            </span>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                    <div className="field">
-                      <label>{"{regiao}"}</label>
-                      <div className="select-wrap">
-                        <select
-                          value={regiao}
-                          onChange={(e) => setRegiao(e.target.value)}
-                        >
-                          <option>Sul</option>
-                          <option>Sudeste</option>
-                          <option>Centro-Oeste</option>
-                          <option>Norte</option>
-                          <option>Nordeste</option>
-                        </select>
-                        <span className="select-arrow">
-                          <ChevDown s={13} />
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Input produto */}
-                  <div className="field" style={{ marginTop: 4 }}>
-                    <label>{"{produto}"}</label>
-                    <input
-                      type="text"
-                      value={produto}
-                      onChange={(e) => {
-                        setProduto(e.target.value);
-                        if (errors.produto)
-                          setErrors((prev) => ({ ...prev, produto: "" })); // limpa erro ao digitar
-                      }}
-                    />
-                    {errors.produto && (
-                      <span className="field-error">{errors.field}</span>
-                    )}
-                  </div>
+                  )}
                 </div>
+
+                <DestinatariosPage
+                  templateName={currentModel?.name || ""}
+                  templateVersion={versao}
+                  templateVariables={templateVariables}
+                  onSectionStatusChange={handleSectionStatusChange}
+                />
 
                 {/* Navigation */}
                 <div className="form-nav">
@@ -371,82 +524,7 @@ export default function EnviarPage() {
                     <ChevLeft s={13} /> Voltar
                   </button>
                   {/* Botão com handleNext */}
-                  <button className="btn-next" onClick={handleNext}>
-                    Próximo: Destinatários <ChevRight s={13} />
-                  </button>
-                </div>
-              </div>
-
-              {/* ── PREVIEW PANEL ── */}
-              <div className="preview-panel">
-                <div className="preview-card">
-                  <div className="preview-card-header">
-                    <span>Pré-visualização</span>
-                    <button className="preview-close">
-                      <XIcon s={11} />
-                    </button>
-                  </div>
-
-                  <div className="email-mock">
-                    <div className="mock-window-bar">
-                      <div className="mock-dot red" />
-                      <div className="mock-dot yellow" />
-                      <div className="mock-dot green" />
-                    </div>
-
-                    <div className="mock-email">
-                      <div className="mock-top-bar">
-                        <div className="mock-logo-badge">JD</div>
-                        <div className="mock-top-text">
-                          <div className="t1">John Deere</div>
-                          <div className="t2">
-                            {/* ✅ dinâmico com fallback */}
-                            {currentModel
-                              ? `${currentModel.name}${versao ? ` — ${versao}` : ""}`
-                              : "Campanha Safrinha 2025"}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mock-hero">
-                        <div className="mock-hero-emoji">🌾</div>
-                        <div className="mock-hero-title">
-                          A colheita perfeita começa
-                          <br />
-                          com o equipamento certo.
-                        </div>
-                      </div>
-
-                      <div className="mock-body">
-                        <div className="mock-greeting">
-                          Olá, {/* ✅ usa nomeContato agora */}
-                          {nomeContato ? (
-                            <strong>{nomeContato}</strong>
-                          ) : (
-                            <span style={{ color: "#9ca3af" }}>
-                              {"{nome_contato}"}
-                            </span>
-                          )}
-                          ,
-                        </div>
-                        <div className="mock-lines">
-                          <div className="mock-line" style={{ width: "90%" }} />
-                          <div className="mock-line" style={{ width: "75%" }} />
-                          <div className="mock-line" style={{ width: "82%" }} />
-                        </div>
-                        <div className="mock-cta">Ver oferta da Safrinha →</div>
-                      </div>
-
-                      <div className="mock-footer">
-                        © 2025 John Deere — Uso interno · Descadastrar
-                        <br />
-                        Região: <em>{regiao || "{regiao}"}</em> · Produto:{" "}
-                        <em>
-                          {produto ? produto.split("—")[0].trim() : "{produto}"}
-                        </em>
-                      </div>
-                    </div>
-                  </div>
+                  <button className="btn-confirm" onClick={handleNext}>✈ Confirmar Envio</button>
                 </div>
               </div>
             </div>

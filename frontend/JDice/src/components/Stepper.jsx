@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 const style = `
 
 /* ── STEPPER ── */
@@ -156,12 +154,25 @@ const STEPS = [
   { num: 4, name: "Envio", sub: "Agende ou envie" },
 ];
 
-export function Stepper(props) {
-  const [currentStep, setCurrentStep] = useState(props.numeroPasso);
+export function Stepper({ numeroPasso = 1, completedSteps }) {
+  const hasControlledProgress = Array.isArray(completedSteps);
+  const completedSet = new Set(completedSteps || []);
+  const firstIncompleteStep = STEPS.find(
+    (step) => !completedSet.has(step.num),
+  )?.num;
+  const activeStep = hasControlledProgress
+    ? firstIncompleteStep ?? null
+    : numeroPasso;
 
   const stepState = (n) => {
-    if (n < currentStep) return "done";
-    if (n === currentStep) return "active";
+    if (hasControlledProgress) {
+      if (completedSet.has(n)) return "done";
+      if (n === activeStep) return "active";
+      return "idle";
+    }
+
+    if (n < numeroPasso) return "done";
+    if (n === numeroPasso) return "active";
     return "idle";
   };
 
@@ -179,8 +190,7 @@ export function Stepper(props) {
           >
             <div
               className={`step ${stepState(step.num)}`}
-              style={{ cursor: "pointer" }}
-              onClick={() => setCurrentStep(step.num)}
+              style={{ cursor: "default" }}
             >
               <div className={`step-circle ${stepState(step.num)}`}>
                 {stepState(step.num) === "done" ? "✓" : step.num}

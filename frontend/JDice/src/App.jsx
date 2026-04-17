@@ -19,7 +19,6 @@ function App() {
         <Route path="/criarTemplate" element={<NovoTemplatePage />} />
         <Route path="/erro" element={<NotFoundPage />} />
         <Route path="/apiConsuming" element={<ApiConsuming />} />
-        <Route path="/destinatarios" element={<DestinatariosPage />} />
         {/* Rota catch-all para páginas não encontradas */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

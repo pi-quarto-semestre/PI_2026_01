@@ -206,12 +206,13 @@ export function StyleDestinatariosPage(){
   .summary-card {
     background: var(--gd); border-radius: 14px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.15); overflow: hidden;
+    
   }
   .sum-header {
     padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.1);
     font-family: 'Sora', sans-serif; font-size: 12.5px; font-weight: 700; color: #fff;
   }
-  .sum-body { padding: 14px 18px; display: flex; flex-direction: column; gap: 14px; }
+  .sum-body { padding: 14px 18px; display: flex; flex-direction: column; gap: 14px;=}
   .sum-block { display: flex; flex-direction: column; gap: 4px; }
   .sum-block-label {
     font-size: 9.5px; font-weight: 700; letter-spacing: 0.8px;
@@ -250,7 +251,7 @@ export function StyleDestinatariosPage(){
   }
   .btn-draft:hover { background: rgba(255,255,255,0.08); }
   .btn-confirm {
-    width: 100%; padding: 11px; border-radius: 9px;
+    width: 20%; padding: 11px; border-radius: 9px;
     border: none; background: var(--yel);
     color: #1a1a1a; font-family: 'Sora', sans-serif; font-size: 13.5px; font-weight: 700;
     cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;
@@ -281,11 +282,17 @@ export function StyleDestinatariosPage(){
     .aside-col { width: 100%; position: static; }
     .sched-fields { grid-template-columns: 1fr 1fr; }
   }
+
+  @media (max-width: 770px){
+    .btn-confirm {width:100%}
+  }
+
   @media (max-width: 640px) {
     .sched-options { grid-template-columns: 1fr; }
     .fields-2col { grid-template-columns: 1fr; }
     .sched-fields { grid-template-columns: 1fr; }
     .sidebar { display: none; }
+    
   }
 `;
 

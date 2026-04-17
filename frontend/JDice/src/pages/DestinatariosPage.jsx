@@ -2,13 +2,10 @@ import { useState, useRef, useEffect } from "react";
 import HeaderNav from "../components/HeaderNav";
 import Sidebar from "../components/Sidebar";
 import { HEADER_NAV_ITEMS } from "../components/HeaderNav";
-import { useNavigate } from "react-router-dom";
-import { getRoute } from "../hooks/navRoutes";
 import { StylesNovoTemplatePage } from "../css/StyleNovoTemplatePage";
 import Footer from "../components/Footer";
 import { Stepper } from "../components/Stepper";
 import { StyleDestinatariosPage } from "../css/StyleDestinatariosPage";
-
 
 /* ─────────────────────────────────────────────────────
    MOCK DATA
@@ -30,7 +27,6 @@ const TIMEZONES = [
   "Acre (UTC-5)",
   "Fernando de Noronha (UTC-2)",
 ];
-
 
 /* ─────────────────────────────────────────────────────
    ICONS
@@ -98,10 +94,11 @@ const ChevD = ({ s = 12 }) => (
   </SvgIcon>
 );
 
+const formatVariableToken = (variable) => `{${variable}}`;
+
 /* ─────────────────────────────────────────────────────
    SUB-COMPONENTS
 ───────────────────────────────────────────────────── */
-
 
 /* RecipientInput */
 function RecipientInput({
@@ -160,8 +157,6 @@ function RecipientInput({
   }, []);
 
   return (
-    
-
     <div className="field" ref={ref}>
       <label>
         {label} {required && <span className="req">*</span>}
@@ -328,12 +323,14 @@ function SummaryCard({
   mode,
   date,
   time,
-  onDraft,
-  onConfirm,
+  templateName,
+  templateVersion,
+  templateVariables,
 }) {
   const total = to.reduce((s, c) => s + (c.count || 1), 0);
   const ccText = cc.map((c) => c.label).join(", ");
   const scheduled = mode === "sched" && date && time;
+  const templateEntries = Object.entries(templateVariables || {});
 
   function fmtDate(d, t) {
     if (!d) return null;
@@ -357,144 +354,129 @@ function SummaryCard({
   const eta = scheduled ? hoursUntil(date, time) : null;
 
   return (
-
     <>
-    <style><StyleDestinatariosPage /></style>
+      <style>
+        <StyleDestinatariosPage />
+      </style>
 
-    <div className="summary-card">
-      <div className="sum-header">Resumo do Envio</div>
+      <div className="summary-card">
+        <div className="sum-header">Resumo do Envio</div>
 
-      <div className="sum-body">
-        {/* Modelo */}
-        <div className="sum-block">
-          <span className="sum-block-label">Modelo</span>
-          <span className="sum-block-title">Campanha Safrinha</span>
-          <span className="sum-block-sub">Versão 2.3 — Marketing Agrícola</span>
-        </div>
-
-        <hr className="sum-divider" />
-
-        {/* Variáveis */}
-        <div className="sum-block">
-          <span className="sum-block-label">Variáveis</span>
-          {[
-            ["{nome_contato}", "por destinatário"],
-            ["{regiao}", "Sul"],
-            ["{produto}", "S780i"],
-          ].map(([k, v]) => (
-            <div key={k} className="sum-var">
-              <code>{k}</code>
-              <span className="arrow">→</span>
-              <span className="val">{v}</span>
-            </div>
-          ))}
-        </div>
-
-        <hr className="sum-divider" />
-
-        {/* Destinatários */}
-        <div className="sum-block">
-          <span className="sum-block-label">Destinatários</span>
-          {to.length > 0 ? (
-            <>
-              <span className="sum-block-sub">
-                Para:{" "}
-                {to
-                  .map(
-                    (c) =>
-                      `${c.label}${c.count ? ` (${c.count.toLocaleString()})` : ""}`,
-                  )
-                  .join(" + ")}
-              </span>
-              <span className="sum-block-sub highlight">
-                Total: {total.toLocaleString()} e-mails
-              </span>
-            </>
-          ) : (
-            <span className="sum-block-sub">
-              Nenhum destinatário adicionado
+        <div className="sum-body">
+          {/* Modelo */}
+          <div className="sum-block">
+            <span className="sum-block-label">Modelo</span>
+            <span className="sum-block-title">
+              {templateName || "Nenhum modelo selecionado"}
             </span>
-          )}
-          {cc.length > 0 && <span className="sum-block-sub">CC: {ccText}</span>}
-          <span className="sum-block-sub">Remetente: {sender}</span>
-        </div>
+            <span className="sum-block-sub">
+              {templateVersion
+                ? `Versão ${templateVersion}`
+                : "Versão não selecionada"}
+            </span>
+          </div>
 
-        <hr className="sum-divider" />
+          <hr className="sum-divider" />
 
-        {/* Agendamento */}
-        <div className="sum-block">
-          <span className="sum-block-label">Agendamento</span>
-          {scheduled ? (
-            <>
-              <span className="sum-block-sub highlight">
-                {fmtDate(date, time)} (Brasília)
+          {/* Variáveis */}
+          <div className="sum-block">
+            <span className="sum-block-label">Variáveis</span>
+            {templateEntries.length > 0 ? (
+              templateEntries.map(([key, value]) => (
+                <div key={key} className="sum-var">
+                  <code>{formatVariableToken(key)}</code>
+                  <span className="arrow">→</span>
+                  <span className="val">{value || "Não preenchido"}</span>
+                </div>
+              ))
+            ) : (
+              <span className="sum-block-sub">
+                Nenhuma variável carregada para este modelo
               </span>
-              {eta && <span className="sum-block-sub">{eta}</span>}
-            </>
-          ) : mode === "now" ? (
-            <span className="sum-block-sub highlight">Envio imediato</span>
-          ) : (
-            <span className="sum-block-sub">Não definido</span>
-          )}
-        </div>
+            )}
+          </div>
 
-        {/* Estimativa */}
-        <div className="sum-delivery">
-          <span className="sd-label">Estimativa de entrega</span>
-          <span className="sd-main">Taxa de abertura esperada: ~68%</span>
-          <span className="sd-sub">~735 aberturas estimadas</span>
+          <hr className="sum-divider" />
+
+          {/* Destinatários */}
+          <div className="sum-block">
+            <span className="sum-block-label">Destinatários</span>
+            {to.length > 0 ? (
+              <>
+                <span className="sum-block-sub">
+                  Para:{" "}
+                  {to
+                    .map(
+                      (c) =>
+                        `${c.label}${c.count ? ` (${c.count.toLocaleString()})` : ""}`,
+                    )
+                    .join(" + ")}
+                </span>
+                <span className="sum-block-sub highlight">
+                  Total: {total.toLocaleString()} e-mails
+                </span>
+              </>
+            ) : (
+              <span className="sum-block-sub">
+                Nenhum destinatário adicionado
+              </span>
+            )}
+            {cc.length > 0 && (
+              <span className="sum-block-sub">CC: {ccText}</span>
+            )}
+            <span className="sum-block-sub">Remetente: {sender}</span>
+          </div>
+
+          <hr className="sum-divider" />
+
+          {/* Agendamento */}
+          <div className="sum-block">
+            <span className="sum-block-label">Agendamento</span>
+            {scheduled ? (
+              <>
+                <span className="sum-block-sub highlight">
+                  {fmtDate(date, time)} (Brasília)
+                </span>
+                {eta && <span className="sum-block-sub">{eta}</span>}
+              </>
+            ) : mode === "now" ? (
+              <span className="sum-block-sub highlight">Envio imediato</span>
+            ) : (
+              <span className="sum-block-sub">Não definido</span>
+            )}
+          </div>
+
+          {/* Estimativa */}
+          <div className="sum-delivery">
+            <span className="sd-label">Estimativa de entrega</span>
+            <span className="sd-main">Taxa de abertura esperada: ~68%</span>
+            <span className="sd-sub">~735 aberturas estimadas</span>
+          </div>
         </div>
       </div>
-
-      <div className="sum-actions">
-        <button className="btn-draft" onClick={onDraft}>
-          Salvar Rascunho
-        </button>
-        <button className="btn-confirm" onClick={onConfirm}>
-          ✈ Confirmar Envio
-        </button>
-        <span className="sum-fine-print">
-          Revise todas as informações antes de confirmar
-        </span>
-      </div>
-    </div>
     </>
-
   );
 }
-
 
 /* ─────────────────────────────────────────────────────
    MAIN PAGE
 ───────────────────────────────────────────────────── */
-const NAV_ITEMS = ["Dashboard", "Modelos", "Envios", "Relatórios"];
 
-export default function DestinatariosPage() {
-  const navigate = useNavigate();
-  const [activeNav, setActiveNav] = useState("Envios");
-  const navItems = HEADER_NAV_ITEMS;
-
-  const handleNavClick = (item) => {
-      setActiveNav(item);
-      navigate(getRoute(item));
-    };
-
+export default function DestinatariosPage({
+  templateName = "",
+  templateVersion = "",
+  templateVariables = {},
+}) {
   // Destinatários state
-  const [toChips, setToChips] = useState([MOCK_LISTS[0], MOCK_LISTS[1]]);
-  const [ccChips, setCcChips] = useState([
-    {
-      id: "gerencia@johndeere.com",
-      label: "gerencia@johndeere.com",
-      type: "email",
-    },
-  ]);
+  const [toChips, setToChips] = useState([]);
+  const [ccChips, setCcChips] = useState([]);
   const [ccoChips, setCcoChips] = useState([]);
   const [showCco, setShowCco] = useState(false);
   const [sender, setSender] = useState(MOCK_EMAILS[0]);
   const [replyTo, setReplyTo] = useState("");
 
   // Schedule state
-  const [schedMode, setSchedMode] = useState("sched");
+  const [schedMode, setSchedMode] = useState("now");
   const [sendDate, setSendDate] = useState("2025-04-03");
   const [sendTime, setSendTime] = useState("08:00");
   const [tz, setTz] = useState(TIMEZONES[0]);
@@ -504,8 +486,6 @@ export default function DestinatariosPage() {
 
   // Toast
   const [toast, setToast] = useState({ show: false, msg: "" });
-
-  
 
   function showToast(msg) {
     setToast({ show: true, msg });
@@ -535,184 +515,155 @@ export default function DestinatariosPage() {
       {/* Toast */}
       <div className={`toast ${toast.show ? "show" : ""}`}>{toast.msg}</div>
 
-      <div className="app">
-        <Sidebar activeNav={activeNav} onNavClick={handleNavClick} />
-
-        <div className="main">
-          <HeaderNav
-            activeNav={activeNav}
-            onNavClick={handleNavClick}
-            navItems={navItems}
-          />
-
-          <div className="scroll-area">
-            {/* Page Header */}
-            <div className="pg-header">
-              <h1>Enviar E-mail</h1>
-              <p className="pg-sub">Campanha Safrinha v2.3 — Sul</p>
-            </div>
-
-            {/* Stepper */}
-            <Stepper numeroPasso={3}/>
-
-            {/* Body */}
-            <div className="body-row">
-              {/* ── FORM COLUMN ── */}
-              <div className="form-col">
-                {/* ── Section 3: Destinatários ── */}
-                <div className="sec-card">
-                  <div className="sec-card-body">
-                    <div className="sec-num">
-                      <div className="num">3</div>
-                      <h2>Destinatários</h2>
-                    </div>
-
-                    {/* Para */}
-                    <RecipientInput
-                      label="Para"
-                      required
-                      placeholder="+ adicionar lista ou e-mail..."
-                      chips={toChips}
-                      onAdd={(c) =>
-                        setToChips((p) =>
-                          p.find((x) => x.id === c.id) ? p : [...p, c],
-                        )
-                      }
-                      onRemove={(id) =>
-                        setToChips((p) => p.filter((c) => c.id !== id))
-                      }
-                      suggestions={MOCK_LISTS}
-                      error={errors.to}
-                    />
-
-                    {/* CC */}
-                    <RecipientInput
-                      label="Cópia (CC)"
-                      placeholder="+ adicionar cópia..."
-                      chips={ccChips}
-                      onAdd={(c) =>
-                        setCcChips((p) =>
-                          p.find((x) => x.id === c.id) ? p : [...p, c],
-                        )
-                      }
-                      onRemove={(id) =>
-                        setCcChips((p) => p.filter((c) => c.id !== id))
-                      }
-                      suggestions={[]}
-                    />
-
-                    {/* CCO */}
-                    {showCco ? (
-                      <RecipientInput
-                        label="Cópia Oculta (CCO)"
-                        placeholder="+ adicionar cópia oculta..."
-                        chips={ccoChips}
-                        onAdd={(c) =>
-                          setCcoChips((p) =>
-                            p.find((x) => x.id === c.id) ? p : [...p, c],
-                          )
-                        }
-                        onRemove={(id) =>
-                          setCcoChips((p) => p.filter((c) => c.id !== id))
-                        }
-                        suggestions={[]}
-                      />
-                    ) : (
-                      <button
-                        style={{
-                          alignSelf: "flex-start",
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          fontSize: 13,
-                          color: "#6b7280",
-                          fontFamily: "Inter, sans-serif",
-                          padding: "2px 0",
-                        }}
-                        onClick={() => setShowCco(true)}
-                      >
-                        + Adicionar cópia oculta (CCO)
-                      </button>
-                    )}
-
-                    {/* Remetente + Responder para */}
-                    <div className="fields-2col">
-                      <div className="field">
-                        <label>Remetente</label>
-                        <div className="sel-wrap">
-                          <select
-                            value={sender}
-                            onChange={(e) => setSender(e.target.value)}
-                          >
-                            {MOCK_EMAILS.map((m) => (
-                              <option key={m}>{m}</option>
-                            ))}
-                          </select>
-                          <span className="sel-arr">
-                            <ChevD />
-                          </span>
-                        </div>
-                      </div>
-                      <div className="field">
-                        <label>Responder para</label>
-                        <input
-                          className="std-input"
-                          placeholder="Mesmo que remetente"
-                          value={replyTo}
-                          onChange={(e) => setReplyTo(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ── Section 4: Agendamento ── */}
-                <div className="sec-card">
-                  <div className="sec-card-body">
-                    <div className="sec-num">
-                      <div className="num">4</div>
-                      <h2>Agendamento</h2>
-                    </div>
-
-                    <ScheduleSection
-                      mode={schedMode}
-                      onMode={setSchedMode}
-                      date={sendDate}
-                      onDate={setSendDate}
-                      time={sendTime}
-                      onTime={setSendTime}
-                      tz={tz}
-                      onTz={setTz}
-                    />
-                  </div>
-                </div>
-
-                {/* Nav buttons */}
-                <div className="form-nav">
-                  <button className="btn-back " onClick={() => navigate("/enviar")}>
-                    <ChevL s={13} /> Voltar
-                  </button>
-                </div>
+      {/* Body */}
+      <div className="body-row">
+        {/* ── FORM COLUMN ── */}
+        <div className="form-col">
+          {/* ── Section 3: Destinatários ── */}
+          <div className="sec-card">
+            <div className="sec-card-body">
+              <div className="sec-num">
+                <div className="num">3</div>
+                <h2>Destinatários</h2>
               </div>
 
-              {/* ── ASIDE: Summary ── */}
-              <div className="aside-col">
-                <SummaryCard
-                  to={toChips}
-                  cc={ccChips}
-                  sender={sender}
-                  mode={schedMode}
-                  date={sendDate}
-                  time={sendTime}
-                  tz={tz}
-                  onDraft={handleDraft}
-                  onConfirm={handleConfirm}
+              {/* Para */}
+              <RecipientInput
+                label="Para"
+                required
+                placeholder="+ adicionar lista ou e-mail..."
+                chips={toChips}
+                onAdd={(c) =>
+                  setToChips((p) =>
+                    p.find((x) => x.id === c.id) ? p : [...p, c],
+                  )
+                }
+                onRemove={(id) =>
+                  setToChips((p) => p.filter((c) => c.id !== id))
+                }
+                suggestions={MOCK_LISTS}
+                error={errors.to}
+              />
+
+              {/* CC */}
+              <RecipientInput
+                label="Cópia (CC)"
+                placeholder="+ adicionar cópia..."
+                chips={ccChips}
+                onAdd={(c) =>
+                  setCcChips((p) =>
+                    p.find((x) => x.id === c.id) ? p : [...p, c],
+                  )
+                }
+                onRemove={(id) =>
+                  setCcChips((p) => p.filter((c) => c.id !== id))
+                }
+                suggestions={[]}
+              />
+
+              {/* CCO */}
+              {showCco ? (
+                <RecipientInput
+                  label="Cópia Oculta (CCO)"
+                  placeholder="+ adicionar cópia oculta..."
+                  chips={ccoChips}
+                  onAdd={(c) =>
+                    setCcoChips((p) =>
+                      p.find((x) => x.id === c.id) ? p : [...p, c],
+                    )
+                  }
+                  onRemove={(id) =>
+                    setCcoChips((p) => p.filter((c) => c.id !== id))
+                  }
+                  suggestions={[]}
                 />
+              ) : (
+                <button
+                  style={{
+                    alignSelf: "flex-start",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: 13,
+                    color: "#6b7280",
+                    fontFamily: "Inter, sans-serif",
+                    padding: "2px 0",
+                  }}
+                  onClick={() => setShowCco(true)}
+                >
+                  + Adicionar cópia oculta (CCO)
+                </button>
+              )}
+
+              {/* Remetente + Responder para */}
+              <div className="fields-2col">
+                <div className="field">
+                  <label>Remetente</label>
+                  <div className="sel-wrap">
+                    <select
+                      value={sender}
+                      onChange={(e) => setSender(e.target.value)}
+                    >
+                      {MOCK_EMAILS.map((m) => (
+                        <option key={m}>{m}</option>
+                      ))}
+                    </select>
+                    <span className="sel-arr">
+                      <ChevD />
+                    </span>
+                  </div>
+                </div>
+                <div className="field">
+                  <label>Responder para</label>
+                  <input
+                    className="std-input"
+                    placeholder="Mesmo que remetente"
+                    value={replyTo}
+                    onChange={(e) => setReplyTo(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          <Footer />
+          {/* ── Section 4: Agendamento ── */}
+          <div className="sec-card">
+            <div className="sec-card-body">
+              <div className="sec-num">
+                <div className="num">4</div>
+                <h2>Agendamento</h2>
+              </div>
+
+              <ScheduleSection
+                mode={schedMode}
+                onMode={setSchedMode}
+                date={sendDate}
+                onDate={setSendDate}
+                time={sendTime}
+                onTime={setSendTime}
+                tz={tz}
+                onTz={setTz}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ── ASIDE: Summary ── */}
+        <div className="aside-col">
+          <SummaryCard
+            to={toChips}
+            cc={ccChips}
+            sender={sender}
+            mode={schedMode}
+            date={sendDate}
+            time={sendTime}
+            templateName={templateName}
+            templateVersion={templateVersion}
+            templateVariables={templateVariables}
+            tz={tz}
+            onDraft={handleDraft}
+            onConfirm={handleConfirm}
+          />
         </div>
       </div>
     </>

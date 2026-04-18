@@ -8,6 +8,10 @@ import java.util.Properties;
 public class Config {
 	
 	//Define os atributos
+	private static String smtpHost;
+	private static int smtpPort;
+	private static String smtpUsername;
+	private static String smtpPassword;
 	private static String templatesFolderPath;
 	private static String sqlUrl;
 	private static String sqlUser;
@@ -40,11 +44,31 @@ public class Config {
 		iterationCount = Integer.parseInt(prop.getProperty("hash.iterationCount"));
 		keySize = Integer.parseInt(prop.getProperty("hash.keySize"));
 		saltLength = Integer.parseInt(prop.getProperty("hash.saltLength"));
+		smtpHost = prop.getProperty("smtp.host");
+		smtpPort = Integer.parseInt(prop.getProperty("smtp.port"));
+		smtpUsername = prop.getProperty("smtp.username");
+		smtpPassword = prop.getProperty("smtp.password");
 	}
 	
 	
 	//Getters das configurações
 	
+	public static String getSmtpHost() {
+		return smtpHost;
+	}
+
+	public static Integer getSmtpPort() {
+		return smtpPort;
+	}
+
+	public static String getSmtpUsername() {
+		return smtpUsername;
+	}
+
+	public static String getSmtpPassword() {
+		return smtpPassword;
+	}
+
 	public static String getTemplatesFolderPath() {
 		return templatesFolderPath;
 	}

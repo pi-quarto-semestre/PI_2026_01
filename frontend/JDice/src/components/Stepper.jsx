@@ -20,10 +20,18 @@ const style = `
 
   .stepper {
     display: flex; align-items: center; gap: 0;
+    width: 100%;
+    min-width: 0;
     background: var(--white); border-radius: 10px;
     padding: 12px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
   }
-  .step { display: flex; align-items: center; gap: 8px; flex: 1; }
+  .step-item {
+    display: flex;
+    align-items: center;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .step { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
   .step-circle {
     width: 26px; height: 26px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
@@ -34,17 +42,26 @@ const style = `
   .step-circle.active { background: var(--step-active); color: #fff; border-color: var(--step-active); }
   .step-circle.idle   { background: #fff; color: var(--muted); border-color: var(--step-idle); }
 
-  .step-label { display: flex; flex-direction: column; }
+  .step-label { display: flex; flex-direction: column; min-width: 0; }
   .step-label .s-name {
     font-size: 12px; font-weight: 600;
     color: var(--text);
+    line-height: 1.2;
+    overflow-wrap: anywhere;
   }
-  .step-label .s-sub { font-size: 10.5px; color: var(--muted); }
+  .step-label .s-sub {
+    font-size: 10.5px; color: var(--muted);
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+  .step.done .step-label .s-name { color: var(--step-done); }
+  .step.active .step-label .s-name { color: var(--step-active); }
   .step.idle .step-label .s-name { color: var(--muted); }
+
 
   .step-line {
     flex: 1; height: 2px; background: var(--step-idle); margin: 0 10px;
-    position: relative; max-width: 60px;
+    position: relative; max-width: 60px; min-width: 24px;
   }
   .step-line.done { background: var(--step-done); }
   .step-line::before {
@@ -60,6 +77,10 @@ const style = `
 
   .stepper {
     padding: 10px 12px;
+  }
+
+  .step-item {
+    min-width: 0;
   }
 
   .step {
@@ -93,26 +114,48 @@ const style = `
 @media (max-width: 768px) {
 
   .stepper {
-    overflow-x: auto;
-    padding: 10px;
-    gap: 8px;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 10px;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+    overflow: visible;
   }
 
-  .stepper::-webkit-scrollbar {
-    display: none;
+  .step-item {
+    flex: 1 1 calc(50% - 5px);
+    align-items: stretch;
+    min-width: 0;
   }
 
   .step {
-    flex: none;
-    min-width: 140px; /* garante leitura */
+    gap: 10px;
+    align-items: center;
+    min-height: 72px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--white);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+
+  .step.done {
+    border-color: rgba(58, 125, 58, 0.3);
+    background: #f2faf2;
+  }
+
+  .step.active {
+    border-color: var(--step-active);
+    background: #eef6ee;
+  }
+
+  .step-circle {
+    margin-top: 2px;
   }
 
   .step-line {
-    display: none; /* remove linhas (polui no mobile) */
-  }
-
-  .step-label {
-    flex-direction: column;
+    display: none;
   }
 
   .step-label .s-name {
@@ -120,7 +163,18 @@ const style = `
   }
 
   .step-label .s-sub {
-    display: none; /* simplifica */
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 560px) {
+
+  .step-item {
+    flex-basis: 100%;
+  }
+
+  .step {
+    min-height: 0;
   }
 }
 
@@ -130,18 +184,23 @@ const style = `
 /* ───────────────────────────── */
 @media (max-width: 480px) {
 
-  .step {
-    min-width: 120px;
-  }
-
   .step-circle {
     width: 22px;
     height: 22px;
     font-size: 10px;
   }
 
+  .step {
+    padding: 10px;
+    gap: 8px;
+  }
+
   .step-label .s-name {
     font-size: 10.5px;
+  }
+
+  .step-label .s-sub {
+    font-size: 9.5px;
   }
 }
   
@@ -183,30 +242,34 @@ export function Stepper({ numeroPasso = 1, completedSteps }) {
       </style>
 
       <div className="stepper">
-        {STEPS.map((step, idx) => (
-          <div
-            key={step.num}
-            style={{ display: "flex", alignItems: "center", flex: 1 }}
-          >
+        {STEPS.map((step, idx) => {
+          const state = stepState(step.num);
+
+          return (
             <div
-              className={`step ${stepState(step.num)}`}
-              style={{ cursor: "default" }}
+              key={step.num}
+              className="step-item"
             >
-              <div className={`step-circle ${stepState(step.num)}`}>
-                {stepState(step.num) === "done" ? "✓" : step.num}
-              </div>
-              <div className="step-label">
-                <span className="s-name">{step.name}</span>
-                <span className="s-sub">{step.sub}</span>
-              </div>
-            </div>
-            {idx < STEPS.length - 1 && (
               <div
-                className={`step-line ${stepState(step.num) === "done" ? "done" : ""}`}
-              />
-            )}
-          </div>
-        ))}
+                className={`step ${state}`}
+                style={{ cursor: "default" }}
+              >
+                <div className={`step-circle ${state}`}>
+                  {state === "done" ? "✓" : step.num}
+                </div>
+                <div className="step-label">
+                  <span className="s-name">{step.name}</span>
+                  <span className="s-sub">{step.sub}</span>
+                </div>
+              </div>
+              {idx < STEPS.length - 1 && (
+                <div
+                  className={`step-line ${state === "done" ? "done" : ""}`}
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
     </>
   );

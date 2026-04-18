@@ -44,8 +44,8 @@ export function StyleDestinatariosPage(){
 
 
   /* ── BODY ROW ── */
-  .body-row { display: flex; gap: 18px; align-items: flex-start; }
-  .form-col  { flex: 1; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .body-row { display: flex; gap: 18px; align-items: flex-start;}
+  .form-col  { flex: 1; display: flex; flex-direction: column; gap: 14px; min-width: 0; width: 100%;}
   .aside-col { width: 248px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; position: sticky; top: 0; }
 
   /* ── SECTION CARD ── */
@@ -190,6 +190,7 @@ export function StyleDestinatariosPage(){
 
   /* ── FORM NAV ── */
   .form-nav {
+    margin-bottom: 20px;
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 22px; background: var(--wh); border-radius: 14px;
     box-shadow: 0 1px 5px rgba(0,0,0,0.06);
@@ -289,9 +290,8 @@ export function StyleDestinatariosPage(){
 
   @media (max-width: 640px) {
     .sched-options { grid-template-columns: 1fr; }
-    .fields-2col { grid-template-columns: 1fr; }
+    // .fields-2col { grid-template-columns: 1fr; }
     .sched-fields { grid-template-columns: 1fr; }
-    .sidebar { display: none; }
     
   }
 `;

@@ -41,7 +41,7 @@ const styles = `
   .body-layout { display: flex; gap: 16px; flex: 1; min-height: 0; }
 
   /* ── FORM PANEL ── */
-  .form-panel { flex: 1; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .form-panel { flex: 1; display: flex; flex-direction: column; gap: 14px; min-width: 0; width: 100% }
 
   /* ── SECTION CARD ── */
   .section-card {

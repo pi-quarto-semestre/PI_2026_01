@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import HeaderNav from "../components/HeaderNav";
@@ -185,7 +185,6 @@ export default function ModelosPage() {
   const navigate = useNavigate();
   const navItems = HEADER_NAV_ITEMS;
   const [activeNav, setActiveNav] = useState("Modelos");
-  const [viewMode, setViewMode] = useState("list");
   const [activePage, setActivePage] = useState(1);
 
   const [models, setModels] = useState([]);
@@ -225,7 +224,7 @@ export default function ModelosPage() {
 
   return (
     <>
-      <style>{<StylesModelosPage />}</style>
+      <StylesModelosPage />
       <div className="app">
         <Sidebar activeNav={activeNav} onNavClick={handleNavClick} />
 
@@ -281,21 +280,6 @@ export default function ModelosPage() {
               <button className="filter-btn">
                 Status <ChevDown s={11} />
               </button>
-              <div className="toolbar-spacer" />
-              <div className="view-toggle">
-                <button
-                  className={`view-btn ${viewMode === "grid" ? "active" : ""}`}
-                  onClick={() => setViewMode("grid")}
-                >
-                  <GridIcon s={15} />
-                </button>
-                <button
-                  className={`view-btn ${viewMode === "list" ? "active" : ""}`}
-                  onClick={() => setViewMode("list")}
-                >
-                  <ListIcon2 s={15} />
-                </button>
-              </div>
             </div>
 
             {/* Table */}
@@ -306,16 +290,18 @@ export default function ModelosPage() {
                     <th>Modelo</th>
                     <th>Categoria</th>
                     <th>Versões</th>
-                    <th>Status</th>
+                    <th>Versão Atual</th>
+                    <th>Última Edição</th>
+                    <th>Envios</th>
                     <th>Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((m) => (
-                    <>
+                    <Fragment key={m.id}>
                       {/* Main row */}
-                      <tr key={m.id}>
-                        <td>
+                      <tr>
+                        <td data-label="Modelo">
                           <div className="model-cell">
                             {m.subVersions ? (
                               <button
@@ -340,10 +326,10 @@ export default function ModelosPage() {
                             </div>
                           </div>
                         </td>
-                        <td style={{ color: "#4b5563", fontSize: 13 }}>
+                        <td className="cell-muted" data-label="Categoria">
                           {m.category}
                         </td>
-                        <td>
+                        <td data-label="Versões">
                           <div className="version-tags">
                             {m.versions.map((v, i) => (
                               <span key={i} className={`vtag ${m.tagStyle[i]}`}>
@@ -352,16 +338,16 @@ export default function ModelosPage() {
                             ))}
                           </div>
                         </td>
-                        <td>
+                        <td data-label="Versão Atual">
                           <span className="current-badge">{m.current}</span>
                         </td>
-                        <td style={{ color: "#4b5563", fontSize: 13 }}>
+                        <td className="cell-muted" data-label="Última Edição">
                           {m.lastEdit}
                         </td>
-                        <td style={{ color: "#4b5563", fontSize: 13 }}>
+                        <td className="cell-muted" data-label="Envios">
                           {m.sends}
                         </td>
-                        <td>
+                        <td data-label="Ações">
                           <div className="actions-cell">
                             <button className="act-link green">Usar</button>
                             <button className="act-link grey">Editar</button>
@@ -377,34 +363,26 @@ export default function ModelosPage() {
                         m.subVersions &&
                         m.subVersions.map((sv, si) => (
                           <tr key={`${m.id}-sub-${si}`} className="sub-row">
-                            <td>
-                              <div
-                                className="model-cell"
-                                style={{ paddingLeft: 32 }}
-                              >
+                            <td data-label="Versão">
+                              <div className="model-cell sub-model-cell">
                                 <div className="model-thumb sub">{sv.icon}</div>
                                 <div>
-                                  <div
-                                    className="model-name-text"
-                                    style={{ fontWeight: 500 }}
-                                  >
-                                    {sv.ver}
-                                  </div>
+                                  <div className="model-name-text sub-model-title">{sv.ver}</div>
                                   <div className="sub-desc">{sv.desc}</div>
                                 </div>
                               </div>
                             </td>
-                            <td colSpan={3}>
+                            <td colSpan={3} className="cell-muted" data-label="Detalhes">
                               <div className="sub-date">{sv.date}</div>
                             </td>
-                            <td colSpan={2}>
+                            <td colSpan={2} data-label="Status">
                               <span
                                 className={`status-badge ${sv.status.toLowerCase()}`}
                               >
                                 {sv.status}
                               </span>
                             </td>
-                            <td>
+                            <td data-label="Ações">
                               <div className="actions-cell">
                                 {sv.status === "Ativa" && (
                                   <button className="act-link green">
@@ -416,7 +394,7 @@ export default function ModelosPage() {
                             </td>
                           </tr>
                         ))}
-                    </>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

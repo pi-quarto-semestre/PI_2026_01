@@ -161,7 +161,7 @@ export default function Dashboard() {
 
   return (
     <>
-      <style>{<StyleDashboard />}</style>
+      <StyleDashboard />
       <div className="app">
         <Sidebar activeNav={activeNav} onNavClick={handleNavClick} />
 
@@ -281,7 +281,7 @@ export default function Dashboard() {
                 <tbody>
                   {scheduled.map((row, i) => (
                     <tr key={i}>
-                      <td>
+                      <td data-label="Modelo">
                         <div className="row-indicator">
                           <div className={`dot ${row.dot}`} />
                           <div>
@@ -290,19 +290,19 @@ export default function Dashboard() {
                           </div>
                         </div>
                       </td>
-                      <td style={{ color: "#4b5563", fontSize: 13 }}>
+                      <td className="cell-muted" data-label="Destinatarios">
                         {row.recipients}
                       </td>
-                      <td style={{ color: "#4b5563", fontSize: 13 }}>
+                      <td className="cell-muted" data-label="Data/Hora">
                         {row.datetime}
                       </td>
-                      <td>
+                      <td data-label="Status">
                         <span className="badge-agendado">{row.status}</span>
                       </td>
-                      <td style={{ color: "#4b5563", fontSize: 13 }}>
+                      <td className="cell-muted" data-label="Criado Por">
                         {row.createdBy}
                       </td>
-                      <td>
+                      <td data-label="Acoes">
                         <div className="actions-cell">
                           <button className="act-edit">Editar</button>
                           <button className="act-cancel">Cancelar</button>

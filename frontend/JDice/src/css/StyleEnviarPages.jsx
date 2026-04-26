@@ -236,12 +236,78 @@ const styles = `
     font-size: 8px; color: var(--muted); line-height: 1.5;
   }
     
-    .field-error {
+  .field-error {
   display: block;
   margin-top: 4px;
   font-size: 12px;
   color: #ef4444;
 }
+
+  .send-feedback {
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .send-feedback.success {
+    background: #ecfdf3;
+    border: 1px solid #86efac;
+    color: #166534;
+  }
+
+  .send-feedback.error {
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
+    color: #991b1b;
+  }
+
+  .feedback-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 24, 39, 0.38);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 9999;
+  }
+
+  .feedback-modal {
+    width: min(420px, 100%);
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 28px 24px;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+    text-align: center;
+  }
+
+  .feedback-modal-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 14px;
+    border-radius: 999px;
+    background: #ecfdf3;
+    color: #166534;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 700;
+  }
+
+  .feedback-modal h2 {
+    font-family: 'Sora', sans-serif;
+    font-size: 20px;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .feedback-modal p {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
 
 /* ───────────────────────────── */
 /* 📱 TABLET (até 1024px) */

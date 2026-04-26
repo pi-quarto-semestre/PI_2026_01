@@ -1,10 +1,12 @@
-import { useState, useRef, useEffect } from "react";
-import HeaderNav from "../components/HeaderNav";
-import Sidebar from "../components/Sidebar";
-import { HEADER_NAV_ITEMS } from "../components/HeaderNav";
+import {
+  useCallback,
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { StylesNovoTemplatePage } from "../css/StyleNovoTemplatePage";
-import Footer from "../components/Footer";
-import { Stepper } from "../components/Stepper";
 import { StyleDestinatariosPage } from "../css/StyleDestinatariosPage";
 
 /* ─────────────────────────────────────────────────────
@@ -17,9 +19,7 @@ const MOCK_LISTS = [
   { id: "lsd", label: "Lista Sudeste", count: 1200, type: "list" },
 ];
 const MOCK_EMAILS = [
-  "marketing@johndeere.com.br",
-  "vendas@johndeere.com.br",
-  "comunicados@johndeere.com.br",
+  "pifatecindaiatuba@gmail.com"
 ];
 const TIMEZONES = [
   "Brasília (UTC-3)",
@@ -462,11 +462,14 @@ function SummaryCard({
    MAIN PAGE
 ───────────────────────────────────────────────────── */
 
-export default function DestinatariosPage({
+const isEmailChip = (chip) => chip?.label?.includes("@");
+
+const DestinatariosPage = forwardRef(function DestinatariosPage({
   templateName = "",
   templateVersion = "",
   templateVariables = {},
-}) {
+  onSectionStatusChange,
+}, ref) {
   // Destinatários state
   const [toChips, setToChips] = useState([]);
   const [ccChips, setCcChips] = useState([]);
@@ -477,8 +480,8 @@ export default function DestinatariosPage({
 
   // Schedule state
   const [schedMode, setSchedMode] = useState("now");
-  const [sendDate, setSendDate] = useState("2025-04-03");
-  const [sendTime, setSendTime] = useState("08:00");
+  const [sendDate, setSendDate] = useState("");
+  const [sendTime, setSendTime] = useState("");
   const [tz, setTz] = useState(TIMEZONES[0]);
 
   // Validation errors
@@ -492,12 +495,22 @@ export default function DestinatariosPage({
     setTimeout(() => setToast({ show: false, msg: "" }), 3400);
   }
 
-  function validate() {
+  const validate = useCallback(() => {
     const e = {};
     if (toChips.length === 0) e.to = "Adicione ao menos um destinatário.";
+    if (toChips.some((chip) => !isEmailChip(chip))) {
+      e.to = "O envio imediato aceita apenas endereços de e-mail no campo Para.";
+    }
+    if (ccChips.some((chip) => !isEmailChip(chip))) {
+      e.cc = "O campo CC aceita apenas endereços de e-mail.";
+    }
+    if (schedMode === "sched") {
+      if (!sendDate) e.sendDate = "Informe a data de envio.";
+      if (!sendTime) e.sendTime = "Informe o horário de envio.";
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
-  }
+  }, [ccChips, schedMode, sendDate, sendTime, toChips]);
 
   function handleConfirm() {
     if (!validate()) return;
@@ -507,6 +520,100 @@ export default function DestinatariosPage({
   function handleDraft() {
     showToast("💾 Rascunho salvo!");
   }
+
+  function handleToAdd(chip) {
+    setToChips((previousChips) =>
+      previousChips.find((currentChip) => currentChip.id === chip.id)
+        ? previousChips
+        : [...previousChips, chip],
+    );
+    setErrors((previousErrors) => ({ ...previousErrors, to: "" }));
+  }
+
+  function handleToRemove(id) {
+    setToChips((previousChips) =>
+      previousChips.filter((chip) => chip.id !== id),
+    );
+    setErrors((previousErrors) => ({ ...previousErrors, to: "" }));
+  }
+
+  function handleCcAdd(chip) {
+    setCcChips((previousChips) =>
+      previousChips.find((currentChip) => currentChip.id === chip.id)
+        ? previousChips
+        : [...previousChips, chip],
+    );
+    setErrors((previousErrors) => ({ ...previousErrors, cc: "" }));
+  }
+
+  function handleCcRemove(id) {
+    setCcChips((previousChips) =>
+      previousChips.filter((chip) => chip.id !== id),
+    );
+    setErrors((previousErrors) => ({ ...previousErrors, cc: "" }));
+  }
+
+  function handleSchedModeChange(mode) {
+    setSchedMode(mode);
+    if (mode === "now") {
+      setErrors((previousErrors) => ({
+        ...previousErrors,
+        sendDate: "",
+        sendTime: "",
+      }));
+    }
+  }
+
+  function handleSendDateChange(value) {
+    setSendDate(value);
+    setErrors((previousErrors) => ({ ...previousErrors, sendDate: "" }));
+  }
+
+  function handleSendTimeChange(value) {
+    setSendTime(value);
+    setErrors((previousErrors) => ({ ...previousErrors, sendTime: "" }));
+  }
+
+  useEffect(() => {
+    onSectionStatusChange?.({
+      section3Complete:
+        toChips.length > 0 &&
+        toChips.every(isEmailChip) &&
+        ccChips.every(isEmailChip),
+      section4Complete:
+        schedMode === "now" || Boolean(sendDate && sendTime && tz),
+    });
+  }, [ccChips, onSectionStatusChange, schedMode, sendDate, sendTime, toChips, tz]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      validate,
+      getFormData: () => ({
+        toChips,
+        ccChips,
+        ccoChips,
+        sender,
+        replyTo,
+        schedMode,
+        sendDate,
+        sendTime,
+        tz,
+      }),
+    }),
+    [
+      ccChips,
+      ccoChips,
+      replyTo,
+      schedMode,
+      sendDate,
+      sendTime,
+      sender,
+      toChips,
+      tz,
+      validate,
+    ],
+  );
 
   return (
     <>
@@ -533,14 +640,8 @@ export default function DestinatariosPage({
                 required
                 placeholder="+ adicionar lista ou e-mail..."
                 chips={toChips}
-                onAdd={(c) =>
-                  setToChips((p) =>
-                    p.find((x) => x.id === c.id) ? p : [...p, c],
-                  )
-                }
-                onRemove={(id) =>
-                  setToChips((p) => p.filter((c) => c.id !== id))
-                }
+                onAdd={handleToAdd}
+                onRemove={handleToRemove}
                 suggestions={MOCK_LISTS}
                 error={errors.to}
               />
@@ -550,15 +651,10 @@ export default function DestinatariosPage({
                 label="Cópia (CC)"
                 placeholder="+ adicionar cópia..."
                 chips={ccChips}
-                onAdd={(c) =>
-                  setCcChips((p) =>
-                    p.find((x) => x.id === c.id) ? p : [...p, c],
-                  )
-                }
-                onRemove={(id) =>
-                  setCcChips((p) => p.filter((c) => c.id !== id))
-                }
+                onAdd={handleCcAdd}
+                onRemove={handleCcRemove}
                 suggestions={[]}
+                error={errors.cc}
               />
 
               {/* CCO */}
@@ -636,14 +732,19 @@ export default function DestinatariosPage({
 
               <ScheduleSection
                 mode={schedMode}
-                onMode={setSchedMode}
+                onMode={handleSchedModeChange}
                 date={sendDate}
-                onDate={setSendDate}
+                onDate={handleSendDateChange}
                 time={sendTime}
-                onTime={setSendTime}
+                onTime={handleSendTimeChange}
                 tz={tz}
                 onTz={setTz}
               />
+              {(errors.sendDate || errors.sendTime) && (
+                <span className="field-err">
+                  ⚠ {errors.sendDate || errors.sendTime}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -668,4 +769,6 @@ export default function DestinatariosPage({
       </div>
     </>
   );
-}
+});
+
+export default DestinatariosPage;

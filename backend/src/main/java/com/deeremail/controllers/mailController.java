@@ -43,7 +43,7 @@ public class mailController {
         @RequestParam String version,
         @RequestParam String subject,
         @RequestParam String sendTo,
-        @RequestParam String sendCcTo[],
+        @RequestParam(required = false) String sendCcTo[],
         @RequestParam String templateParams
     ) throws IOException {
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import HeaderNav from "../components/HeaderNav";
@@ -100,11 +100,14 @@ export default function EnviarPage() {
   const [errors, setErrors] = useState({
     selectedModel: "",
     versao: "",
+    assunto: "",
   });
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState("Envios"); 
+  const destinatariosRef = useRef(null);
 
   const [selectedModel, setSelectedModel] = useState(""); 
+  const [assunto, setAssunto] = useState("");
   const [versions, setVersions] = useState([]); 
   const [versao, setVersao] = useState(""); 
 
@@ -119,6 +122,12 @@ export default function EnviarPage() {
     section3Complete: false,
     section4Complete: false,
   });
+  const [submitFeedback, setSubmitFeedback] = useState({
+    type: "",
+    title: "",
+    message: "",
+  });
+  const [isSending, setIsSending] = useState(false);
 
   const navItems = HEADER_NAV_ITEMS;
   const [models, setModels] = useState([]);
@@ -136,7 +145,7 @@ export default function EnviarPage() {
     const selectedId = e.target.value;
     setSelectedModel(selectedId);
     setVersao("");
-    setErrors({ selectedModel: "", versao: "" });
+    setErrors((prev) => ({ ...prev, selectedModel: "", versao: "" }));
     setTemplateData({ content: "", parameters: [] });
     setTemplateVariables({});
     setTemplateLoading(false);
@@ -201,6 +210,7 @@ export default function EnviarPage() {
           const nextErrors = {
             selectedModel: prev.selectedModel || "",
             versao: prev.versao || "",
+            assunto: prev.assunto || "",
           };
 
           parameters.forEach((parameter) => {
@@ -299,38 +309,135 @@ export default function EnviarPage() {
           : "Nenhuma variável identificada neste modelo."
         : "Selecione um modelo e uma versão para carregar as variáveis.";
 
-  const handleNext = () => {
-    if (templateLoading) return;
-
-    const variableErrors = templateParameters.reduce((acc, parameter) => {
-      if (!templateVariables[parameter]?.trim()) {
-        acc[parameter] = `${formatVariableName(parameter)} não pode estar vazio`;
-      }
-
-      return acc;
-    }, {});
-
-    const newErrors = {
-      selectedModel: !selectedModel ? "Selecione um modelo" : "",
-      versao: !versao ? "Selecione uma versão" : "",
-      ...variableErrors,
+  const validateForm = () => {
+    const nextErrors = {
+      selectedModel: "",
+      versao: "",
+      assunto: "",
     };
 
-    if (templateError) {
-      newErrors.versao = templateError;
+    if (!selectedModel) {
+      nextErrors.selectedModel = "Selecione um modelo.";
     }
 
-    setErrors(newErrors);
+    if (!versao) {
+      nextErrors.versao = "Selecione uma versão.";
+    }
 
-    const hasError = Object.values(newErrors).some((e) => e !== "");
-    if (!hasError) {
-      // Rodar a rotina para envio e e-mail AQUI (eu acho)
+    if (!assunto.trim()) {
+      nextErrors.assunto = "Informe o assunto do e-mail.";
+    }
+
+    templateParameters.forEach((parameter) => {
+      if (!templateVariables[parameter]?.trim()) {
+        nextErrors[parameter] = "Preencha esta variável.";
+      }
+    });
+
+    setErrors(nextErrors);
+
+    return Object.values(nextErrors).every((value) => !value);
+  };
+
+  const enviarEmail = async () => {
+    setSubmitFeedback({ type: "", title: "", message: "" });
+
+    const parentFormIsValid = validateForm();
+    const destinatariosFormIsValid =
+      destinatariosRef.current?.validate?.() ?? false;
+
+    if (!parentFormIsValid || !destinatariosFormIsValid) {
+      setSubmitFeedback({
+        type: "error",
+        title: "",
+        message: "Revise os campos obrigatórios antes de confirmar o envio.",
+      });
+      return;
+    }
+
+    const dadosDestinatarios = destinatariosRef.current.getFormData();
+
+    if (dadosDestinatarios.schedMode === "sched") {
+      setSubmitFeedback({
+        type: "error",
+        title: "",
+        message:
+          "O backend disponível nesta tela suporta apenas envio imediato no momento.",
+      });
+      return;
+    }
+
+    const toEmails = dadosDestinatarios.toChips
+      .map((chip) => chip.label?.trim())
+      .filter(Boolean);
+    const ccEmails = dadosDestinatarios.ccChips
+      .map((chip) => chip.label?.trim())
+      .filter(Boolean);
+
+    const payload = new URLSearchParams();
+    payload.append("name", currentModel.name);
+    payload.append("version", versao);
+    payload.append("subject", assunto.trim());
+    payload.append("sendTo", toEmails.join(","));
+    ccEmails.forEach((email) => payload.append("sendCcTo", email));
+    payload.append("templateParams", JSON.stringify(templateVariables));
+
+    try {
+      setIsSending(true);
+      const response = await api.post("/api/mail/sendNow", payload, {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      });
+
+      setSubmitFeedback({
+        type: "success",
+        title: "Envio concluído",
+        message: response.data || "O e-mail foi enviado com sucesso.",
+      });
+
+      const esperar = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      await esperar(2000);
+      setSubmitFeedback({
+        type: "success",
+        title: "Redirecionando",
+        message: "Você será levado para a página de dashboard.",
+      });
+      await esperar(2000);
+      navigate("/dashboard");
+
+    } catch (err) {
+      const message =
+        err.response?.data ||
+        err.message ||
+        "Não foi possível enviar o e-mail.";
+
+      setSubmitFeedback({
+        type: "error",
+        title: "",
+        message,
+      });
+
+      if (!err.response) {
+        handleError(err);
+      }
+    } finally {
+      setIsSending(false);
     }
   };
 
   return (
     <>
       <style>{<StylesEnviarPages />}</style>
+      {submitFeedback.type === "success" && (
+        <div className="feedback-modal-overlay">
+          <div className="feedback-modal" role="alertdialog" aria-live="assertive">
+            <div className="feedback-modal-icon">✓</div>
+            <h2>{submitFeedback.title}</h2>
+            <p>{submitFeedback.message}</p>
+          </div>
+        </div>
+      )}
       <div className="app">
         <Sidebar activeNav={activeNav} onNavClick={handleNavClick} />
 
@@ -363,6 +470,28 @@ export default function EnviarPage() {
                     <div>
                       <h2>Selecionar Modelo</h2>
                     </div>
+                  </div>
+
+                  
+                  <div className="field">
+                    <label>Assunto do e-mail:</label>
+                    <input
+                      className="std-input"
+                      placeholder="Digite o assunto do e-mail"
+                      value={assunto}
+                      onChange={(e) => {
+                        setAssunto(e.target.value);
+                        if (errors.assunto) {
+                          setErrors((prev) => ({
+                            ...prev,
+                            assunto: "",
+                          }));
+                        }
+                      }}
+                    />
+                    {errors.assunto && (
+                      <span className="field-error">{errors.assunto}</span>
+                    )}
                   </div>
 
                   {/* Select Modelo */}
@@ -404,6 +533,7 @@ export default function EnviarPage() {
                           onChange={(e) => {
                             setVersao(e.target.value);
                             setErrors((prev) => ({
+                              ...prev,
                               selectedModel: prev.selectedModel || "",
                               versao: "",
                             }));
@@ -512,6 +642,7 @@ export default function EnviarPage() {
                 </div>
 
                 <DestinatariosPage
+                  ref={destinatariosRef}
                   templateName={currentModel?.name || ""}
                   templateVersion={versao}
                   templateVariables={templateVariables}
@@ -519,12 +650,23 @@ export default function EnviarPage() {
                 />
 
                 {/* Navigation */}
+                {submitFeedback.type === "error" && submitFeedback.message && (
+                  <div className={`send-feedback ${submitFeedback.type}`}>
+                    {submitFeedback.message}
+                  </div>
+                )}
                 <div className="form-nav">
                   <button className="btn-back">
                     <ChevLeft s={13} /> Voltar
                   </button>
                   {/* Botão com handleNext */}
-                  <button className="btn-confirm" onClick={handleNext}>✈ Confirmar Envio</button>
+                  <button
+                    className="btn-confirm"
+                    onClick={enviarEmail}
+                    disabled={isSending}
+                  >
+                    {isSending ? "Enviando..." : "✈ Confirmar Envio"}
+                  </button>
                 </div>
               </div>
             </div>

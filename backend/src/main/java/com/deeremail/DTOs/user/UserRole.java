@@ -1,4 +1,4 @@
-package com.deeremail.DTOs.User;
+package com.deeremail.DTOs.user;
 
 public enum UserRole {
     ADMIN("admin"),

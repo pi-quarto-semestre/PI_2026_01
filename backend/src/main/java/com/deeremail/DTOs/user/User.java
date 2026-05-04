@@ -26,11 +26,21 @@ public class User implements UserDetails{
 
     @Id //Define que o campo id é a chave primária da tabela
     @GeneratedValue(strategy = GenerationType.UUID) //Define que o valor do campo id será gerado automaticamente usando UUID
-    private String id; 
+    private String id;
+
     private String login;
+
     private String password;
+
     @Enumerated(EnumType.STRING)
     private UserRole role;
+
+    public User(String login, String password, UserRole role) {
+        this.login = login;
+        this.password = password;
+        this.role = role;
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
     if (this.role == UserRole.ADMIN) return List.of(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("ROLE_USER"));

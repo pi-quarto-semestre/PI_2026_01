@@ -122,12 +122,12 @@ const ChevDown = ({ s = 12 }) => (
 );
 
 const VARIABLES = [
-  "${nome_contato}",
-  "${regiao}",
-  "${produto}",
-  "${data}",
-  "${empresa}",
-  "${hora}",
+  "[[${nome_contato}]]",
+  "[[${regiao}]]",
+  "[[${produto}]]",
+  "[[${data}]]",
+  "[[${empresa}]]",
+  "[[${hora}]]",
 ];
 
 function getVersionStyle(v) {
@@ -258,7 +258,7 @@ export default function NovoTemplatePage() {
     // 2. Adiciona a estrutura básica HTML ao texto
     const conteudoHTML = `
           <!DOCTYPE html>
-          <html>
+          <html xmlns:th="http://www.thymeleaf.org">
           <body>
               ${texto}
           </body>

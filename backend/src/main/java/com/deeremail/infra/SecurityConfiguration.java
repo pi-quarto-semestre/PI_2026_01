@@ -1,6 +1,9 @@
 package com.deeremail.infra;
 
+import com.deeremail.DTOs.user.User;
 import com.deeremail.services.AuthorizationService;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -13,12 +16,16 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfiguration {
 
-  private final AuthorizationService authorizationService;
+    @Autowired
+    SecurityFilter securityFilter;
+
+    private final AuthorizationService authorizationService;
 
     SecurityConfiguration(AuthorizationService authorizationService) {
         this.authorizationService = authorizationService;
@@ -38,7 +45,11 @@ public class SecurityConfiguration {
                 .requestMatchers(HttpMethod.POST, "/api/mail").hasAnyRole("ADMIN","USER")
                 .anyRequest().authenticated()
             )
+           .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
            .build(); 
+
+           
+
         }
   @Bean
   public AuthenticationManager authenticationManager(AuthenticationConfiguration autenticationConfiguration) {

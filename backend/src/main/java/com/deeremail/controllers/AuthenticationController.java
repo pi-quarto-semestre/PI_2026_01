@@ -13,6 +13,7 @@ import com.deeremail.DTOs.user.AuthenticationDTO;
 import com.deeremail.DTOs.user.RegisterDTO;
 import com.deeremail.DTOs.user.User;
 import com.deeremail.repositories.UserRepository;
+import com.deeremail.services.TokenService;
 
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,15 +29,20 @@ public class AuthenticationController {
     @Autowired
     UserRepository repository;
 
+    @Autowired
+    TokenService tokenService;
+
     @PostMapping("/login")
     public ResponseEntity login(@RequestBody @Valid AuthenticationDTO data){
         var usernamePassword = new UsernamePasswordAuthenticationToken(data.login(), data.password());
         var auth = this.authenticationManager.authenticate(usernamePassword);
 
-        return ResponseEntity.ok().build();
+        var token = tokenService.generateToken((User) auth.getPrincipal());
+
+        return ResponseEntity.ok().body(token);
     }
 
-    @PostMapping("/Register")
+    @PostMapping("/register")
     public ResponseEntity register(@RequestBody @Valid RegisterDTO data) {
         if (this.repository.findByLogin(data.login()) != null) {
             return ResponseEntity.badRequest().build();

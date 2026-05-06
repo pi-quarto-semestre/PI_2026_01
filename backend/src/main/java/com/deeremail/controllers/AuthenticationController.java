@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.deeremail.DTOs.LoginResponse;
 import com.deeremail.DTOs.user.AuthenticationDTO;
 import com.deeremail.DTOs.user.RegisterDTO;
 import com.deeremail.DTOs.user.User;
@@ -39,7 +40,7 @@ public class AuthenticationController {
 
         var token = tokenService.generateToken((User) auth.getPrincipal());
 
-        return ResponseEntity.ok().body(token);
+        return ResponseEntity.ok().body(new LoginResponse(token));
     }
 
     @PostMapping("/register")

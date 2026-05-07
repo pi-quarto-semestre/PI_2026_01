@@ -29,7 +29,7 @@ import com.deeremail.utils.FileStructure;
 @RestController
 @CrossOrigin
 @RequestMapping("/api/templates")
-public class templatesController {
+public class TemplatesController {
 
     // Pega o caminho da pasta de modelos do arquivo de configuração
     private String templatePath = Config.getTemplatesFolderPath();

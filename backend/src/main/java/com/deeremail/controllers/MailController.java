@@ -28,7 +28,7 @@ import tools.jackson.databind.ObjectMapper;
 @RestController
 @CrossOrigin
 @RequestMapping("/api/mail")
-public class mailController {
+public class MailController {
 
     // Pega o caminho da pasta de modelos do arquivo de configuração
     private String templatePath = Config.getTemplatesFolderPath();
@@ -99,5 +99,7 @@ public class mailController {
 
         return ResponseEntity.ok("Mensagem enviada com sucesso!");
     }
+
+    
 
 }

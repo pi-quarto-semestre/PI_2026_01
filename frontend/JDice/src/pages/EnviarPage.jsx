@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import HeaderNav from "../components/HeaderNav";
 import { getRoute } from "../hooks/navRoutes";
@@ -10,6 +10,7 @@ import { api } from "../../services/api";
 import { useErrorHandler } from "../hooks/useErrorHandler";
 import { Stepper } from "../components/Stepper";
 import DestinatariosPage from "./DestinatariosPage";
+import { useTemplateLibrary } from "../hooks/useTemplateLibrary";
 
 // ── Icons ──
 const ChevDown = ({ s = 12 }) => (
@@ -69,22 +70,6 @@ const XIcon = ({ s = 12 }) => (
   </svg>
 );
 
-const normalizeTemplates = (root) => {
-  return (root.children || []).map((template) => {
-    const versions = (template.children || []).filter((item) => item.directory);
-    const versionLabels = versions.map((v) => v.name);
-
-    return {
-      id: template.path,
-      name: template.name,
-      file: versionLabels.join(", "),
-      subVersions: versions.map((version) => ({
-        ver: version.name,
-      })),
-    };
-  });
-};
-
 const formatVariableToken = (variable) => `{${variable}}`;
 
 const formatVariableName = (variable) =>
@@ -103,8 +88,10 @@ export default function EnviarPage() {
     assunto: "",
   });
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeNav, setActiveNav] = useState("Envios"); 
   const destinatariosRef = useRef(null);
+  const routeSelectionApplied = useRef(false);
 
   const [selectedModel, setSelectedModel] = useState(""); 
   const [assunto, setAssunto] = useState("");
@@ -130,10 +117,14 @@ export default function EnviarPage() {
   const [isSending, setIsSending] = useState(false);
 
   const navItems = HEADER_NAV_ITEMS;
-  const [models, setModels] = useState([]);
   const { handleError } = useErrorHandler();
-  // eslint-disable-next-line no-unused-vars
-  const [loading, setLoading] = useState(true);
+  const {
+    templates: models,
+    loading,
+    error: templatesError,
+  } = useTemplateLibrary({
+    onError: handleError,
+  });
   const currentModel = models.find((m) => m.id === selectedModel) || null;
 
   const handleNavClick = (item) => {
@@ -141,44 +132,79 @@ export default function EnviarPage() {
     navigate(getRoute(item));
   };
 
-  const handleModelChange = (e) => {
-    const selectedId = e.target.value;
-    setSelectedModel(selectedId);
-    setVersao("");
-    setErrors((prev) => ({ ...prev, selectedModel: "", versao: "" }));
+  const resetLoadedTemplate = useCallback(() => {
     setTemplateData({ content: "", parameters: [] });
     setTemplateVariables({});
     setTemplateLoading(false);
     setTemplateError("");
+  }, []);
 
-    if (!selectedId) {
+  const handleModelChange = (e) => {
+    const selectedId = e.target.value;
+    setSelectedModel(selectedId);
+    setVersao("");
+    setVersions([]);
+    setErrors((prev) => ({ ...prev, selectedModel: "", versao: "" }));
+    resetLoadedTemplate();
+  };
+
+  useEffect(() => {
+    if (routeSelectionApplied.current || models.length === 0) {
+      return;
+    }
+
+    const routeTemplateId = location.state?.selectedTemplateId;
+
+    if (!routeTemplateId) {
+      routeSelectionApplied.current = true;
+      return;
+    }
+
+    const foundTemplate = models.find((model) => model.id === routeTemplateId);
+    routeSelectionApplied.current = true;
+
+    if (!foundTemplate) {
+      return;
+    }
+
+    setSelectedModel(foundTemplate.id);
+    setErrors((prev) => ({ ...prev, selectedModel: "", versao: "" }));
+    resetLoadedTemplate();
+  }, [location.state, models, resetLoadedTemplate]);
+
+  useEffect(() => {
+    if (!selectedModel) {
       setVersions([]);
       return;
     }
 
-    const found = models.find((m) => m.id === selectedId);
-    const subs = found?.subVersions || [];
-    setVersions(subs);
-    if (subs.length > 0) {
-      setTemplateLoading(true);
-      setVersao(subs[0].ver);
-    }
-  };
+    const foundTemplate = models.find((model) => model.id === selectedModel);
+    const availableVersions = foundTemplate?.subVersions || [];
+    const preferredVersion = location.state?.selectedTemplateVersion;
 
-  useEffect(() => {
-    api
-      .get("/api/templates/list")
-      .then((resp) => {
-        setModels(normalizeTemplates(resp.data));
-      })
-      .catch((err) => {
-        handleError(err);
-        setModels([]);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [handleError]);
+    setVersions(availableVersions);
+
+    if (availableVersions.length === 0) {
+      if (versao) {
+        setVersao("");
+      }
+      return;
+    }
+
+    const versionExists = availableVersions.some((version) => version.ver === versao);
+
+    if (versionExists) {
+      return;
+    }
+
+    const nextVersion =
+      availableVersions.find((version) => version.ver === preferredVersion)?.ver ||
+      availableVersions[0].ver;
+
+    setVersao(nextVersion);
+    setTemplateLoading(true);
+    setTemplateError("");
+  }, [location.state, models, selectedModel, versao]);
 
   useEffect(() => {
     if (!currentModel || !versao) {
@@ -502,9 +528,12 @@ export default function EnviarPage() {
                         value={selectedModel}
                         id="templateName"
                         onChange={handleModelChange}
+                        disabled={loading}
                       >
                         <option value="" disabled>
-                          Selecione um modelo...
+                          {loading
+                            ? "Carregando modelos..."
+                            : "Selecione um modelo..."}
                         </option>
                         {models.map((m) => (
                           <option key={m.id} value={m.id}>
@@ -520,6 +549,9 @@ export default function EnviarPage() {
                       <span className="field-error">
                         {errors.selectedModel}
                       </span>
+                    )}
+                    {templatesError && (
+                      <span className="field-error">{templatesError}</span>
                     )}
                   </div>
 
@@ -582,9 +614,17 @@ export default function EnviarPage() {
                       </div>
                       <div className="m-meta">
                         {currentModel
-                          ? `Arquivos: ${currentModel.file || "—"}`
+                          ? `Categoria: ${currentModel.category || "Sem categoria"}`
                           : "Selecione um modelo para ver os detalhes"}
                       </div>
+                      {currentModel && (
+                        <div className="m-meta">
+                          Arquivos: {currentModel.file || "—"}
+                          {currentModel.tags.length > 0
+                            ? ` • Tags: ${currentModel.tags.join(", ")}`
+                            : ""}
+                        </div>
+                      )}
                       <div className="m-vars">{templateVariablesText}</div>
                     </div>
                     <button className="btn-preview" disabled={!currentModel}>
@@ -645,6 +685,8 @@ export default function EnviarPage() {
                   ref={destinatariosRef}
                   templateName={currentModel?.name || ""}
                   templateVersion={versao}
+                  templateCategory={currentModel?.category || ""}
+                  templateTags={currentModel?.tags || []}
                   templateVariables={templateVariables}
                   onSectionStatusChange={handleSectionStatusChange}
                 />

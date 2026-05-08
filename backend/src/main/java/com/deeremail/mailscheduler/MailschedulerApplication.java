@@ -33,8 +33,31 @@ public class MailschedulerApplication {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+
+		bootstrapRuntimeProperties();
 		
 		SpringApplication.run(MailschedulerApplication.class, args);
+	}
+
+	private static void bootstrapRuntimeProperties() {
+		applyPropertyIfMissing("POSTGRES_CONNECTION", Config.getSqlUrl());
+		applyPropertyIfMissing("DB_USER", Config.getSqlUser());
+		applyPropertyIfMissing("DB_PASSWORD", Config.getSqlPassword());
+		applyPropertyIfMissing("JWT_SECRET", Config.getJwtSecret());
+
+		if (isBlank(System.getProperty("JWT_SECRET")) && isBlank(System.getenv("JWT_SECRET"))) {
+			System.setProperty("JWT_SECRET", "dev-jwt-secret");
+		}
+	}
+
+	private static void applyPropertyIfMissing(String key, String fallbackValue) {
+		if (isBlank(System.getProperty(key)) && isBlank(System.getenv(key)) && !isBlank(fallbackValue)) {
+			System.setProperty(key, fallbackValue);
+		}
+	}
+
+	private static boolean isBlank(String value) {
+		return value == null || value.isBlank();
 	}
 
 }

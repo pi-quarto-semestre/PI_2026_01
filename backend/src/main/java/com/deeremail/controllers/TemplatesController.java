@@ -1,9 +1,9 @@
 package com.deeremail.controllers;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -31,13 +31,64 @@ import com.deeremail.utils.FileStructure;
 @RequestMapping("/api/templates")
 public class TemplatesController {
 
-    // Pega o caminho da pasta de modelos do arquivo de configuração
-    private String templatePath = Config.getTemplatesFolderPath();
+    private static final String TEMPLATE_FILE_NAME = "template.html";
+
+    private Path getTemplateRootPath() {
+        String configuredPath = Config.getTemplatesFolderPath();
+
+        if (configuredPath == null || configuredPath.isBlank()) {
+            throw new ResponseStatusException(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Pasta de templates nao configurada"
+            );
+        }
+
+        return Path.of(configuredPath).normalize();
+    }
+
+    private String sanitizePathSegment(String value, String fieldName) {
+        String sanitizedValue = value == null ? "" : value.trim();
+
+        if (sanitizedValue.isBlank()) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                fieldName + " nao pode ficar em branco"
+            );
+        }
+
+        if (sanitizedValue.contains("..")
+            || sanitizedValue.contains("/")
+            || sanitizedValue.contains("\\")
+            || sanitizedValue.contains(":")) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                fieldName + " contem caracteres invalidos"
+            );
+        }
+
+        return sanitizedValue;
+    }
+
+    private Path resolveTemplateVersionPath(String name, String version) {
+        Path rootPath = getTemplateRootPath();
+        String sanitizedName = sanitizePathSegment(name, "Nome do template");
+        String sanitizedVersion = sanitizePathSegment(version, "Versao do template");
+        Path versionPath = rootPath.resolve(sanitizedName).resolve(sanitizedVersion).normalize();
+
+        if (!versionPath.startsWith(rootPath)) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Caminho do template invalido"
+            );
+        }
+
+        return versionPath;
+    }
 
     @GetMapping("/list")
     // lista as pastas e os arquivos existentes dentro em uma estrutura de json com a hierarquia
     public FileNode getFiles() throws IOException {
-        return FileStructure.getFolderStructure(templatePath);
+        return FileStructure.getFolderStructure(getTemplateRootPath().toString());
     }
 
     @GetMapping("/template")
@@ -48,10 +99,10 @@ public class TemplatesController {
     ) throws IOException {
         
         // Monta o caminho da pasta para o modelo html
-        String fullModelPath = templatePath + "/" + name + "/" + version + "/template.html";
+        Path fullModelPath = resolveTemplateVersionPath(name, version).resolve(TEMPLATE_FILE_NAME);
         String content;
         try{
-            content = Files.readString(Path.of(fullModelPath));
+            content = Files.readString(fullModelPath);
         }
         catch (java.nio.file.NoSuchFileException e){
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource not found");
@@ -84,26 +135,19 @@ public class TemplatesController {
         @RequestParam String version
     ) {
 
-        String fullPath = templatePath + "/" + name + "/" + version;
-
         // Retorna erro se a chamada da api vier sem o arquivo
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body("Arquivo está vazio");
         }
 
         try {
-            // Cria a pasta de template se ela não existir
-            File directory = new File(fullPath);
-            if (!directory.exists()) {
-                directory.mkdirs();
-            }
+            Path templateVersionPath = resolveTemplateVersionPath(name, version);
+            Files.createDirectories(templateVersionPath);
 
-            // Salva o arquivo
-            String filePath = fullPath + "/" + file.getOriginalFilename();
-            File dest = new File(filePath);
-            file.transferTo(dest);
+            Path destinationFile = templateVersionPath.resolve(TEMPLATE_FILE_NAME);
+            Files.copy(file.getInputStream(), destinationFile, StandardCopyOption.REPLACE_EXISTING);
 
-            return ResponseEntity.ok("File uploaded to: " + filePath);
+            return ResponseEntity.ok("File uploaded to: " + destinationFile);
 
         } catch (IOException e) {
             return ResponseEntity.internalServerError().body("Erro no upload");

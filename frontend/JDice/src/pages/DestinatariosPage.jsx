@@ -325,6 +325,8 @@ function SummaryCard({
   time,
   templateName,
   templateVersion,
+  templateCategory,
+  templateTags,
   templateVariables,
 }) {
   const total = to.reduce((s, c) => s + (c.count || 1), 0);
@@ -374,6 +376,16 @@ function SummaryCard({
                 ? `Versão ${templateVersion}`
                 : "Versão não selecionada"}
             </span>
+            <span className="sum-block-sub">
+              {templateCategory
+                ? `Categoria: ${templateCategory}`
+                : "Categoria não informada"}
+            </span>
+            {templateTags.length > 0 && (
+              <span className="sum-block-sub">
+                Tags: {templateTags.join(", ")}
+              </span>
+            )}
           </div>
 
           <hr className="sum-divider" />
@@ -467,6 +479,8 @@ const isEmailChip = (chip) => chip?.label?.includes("@");
 const DestinatariosPage = forwardRef(function DestinatariosPage({
   templateName = "",
   templateVersion = "",
+  templateCategory = "",
+  templateTags = [],
   templateVariables = {},
   onSectionStatusChange,
 }, ref) {
@@ -760,6 +774,8 @@ const DestinatariosPage = forwardRef(function DestinatariosPage({
             time={sendTime}
             templateName={templateName}
             templateVersion={templateVersion}
+            templateCategory={templateCategory}
+            templateTags={templateTags}
             templateVariables={templateVariables}
             tz={tz}
             onDraft={handleDraft}

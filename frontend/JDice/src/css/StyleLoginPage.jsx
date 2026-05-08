@@ -303,6 +303,26 @@ const styles = `
 
   .forgot-link:hover { text-decoration: underline; }
 
+  .status-message {
+    margin-top: 4px;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .status-message.error {
+    background: #fff4f4;
+    border: 1px solid #f6caca;
+    color: #a12626;
+  }
+
+  .status-message.success {
+    background: #eef9f0;
+    border: 1px solid #bfe0c5;
+    color: #1f6b32;
+  }
+
   /* Submit btn */
   .submit-btn {
     width: 100%;
@@ -322,6 +342,11 @@ const styles = `
 
   .submit-btn:hover { background: var(--jd-green-active); }
   .submit-btn:active { transform: scale(0.99); }
+  .submit-btn:disabled {
+    background: #8ca98c;
+    cursor: wait;
+    transform: none;
+  }
 
   /* Bottom note */
   .bottom-note {
@@ -331,14 +356,18 @@ const styles = `
     color: var(--jd-text-muted);
   }
 
-  .bottom-note a {
+  .bottom-note button {
     color: var(--jd-text-dark);
     font-weight: 700;
     text-decoration: none;
     cursor: pointer;
+    background: none;
+    border: none;
+    font-size: inherit;
+    font-family: inherit;
   }
 
-  .bottom-note a:hover { text-decoration: underline; }
+  .bottom-note button:hover { text-decoration: underline; }
 
   /* Responsive */
   @media (max-width: 768px) {

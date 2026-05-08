@@ -4,11 +4,10 @@ import Sidebar from "../components/Sidebar";
 import HeaderNav from "../components/HeaderNav";
 import { getRoute } from "../hooks/navRoutes";
 import { HEADER_NAV_ITEMS } from "../components/HeaderNav";
-import ApiConsuming from "./ApiConsuming";
-import { api } from "../../services/api";
 import Footer from "../components/Footer";
 import { useErrorHandler } from "../hooks/useErrorHandler";
 import { StylesModelosPage } from "../css/StyleModelosPage";
+import { useTemplateLibrary } from "../hooks/useTemplateLibrary";
 
 // ── Icons ──
 const GridIcon = ({ s = 16 }) => (
@@ -154,45 +153,21 @@ const ImportIcon = ({ s = 14 }) => (
   </svg>
 );
 
-const normalizeTemplates = (root) => {
-  return (root.children || []).map((template) => {
-    const versions = (template.children || []).filter((item) => item.directory);
-    const versionLabels = versions.map((v) => v.name);
-
-    return {
-      id: template.path,
-      icon: "📄",
-      name: template.name,
-      file: versionLabels.join(", "),
-      category: "Padrão",
-      versions: versionLabels,
-      tagStyle: versionLabels.map(() => "grey"),
-      current: versionLabels[0] || "",
-      lastEdit: "",
-      sends: "",
-      subVersions: versions.map((version) => ({
-        ver: version.name,
-        date: "",
-        desc: `Arquivos: ${version.children?.length || 0}`,
-        status: version.children?.length ? "Ativa" : "Inativa",
-        icon: "📄",
-      })),
-    };
-  });
-};
-
 export default function ModelosPage() {
   const navigate = useNavigate();
   const navItems = HEADER_NAV_ITEMS;
   const [activeNav, setActiveNav] = useState("Modelos");
   const [activePage, setActivePage] = useState(1);
-
-  const [models, setModels] = useState([]);
-  // eslint-disable-next-line no-unused-vars
-  const [loading, setLoading] = useState(true);
   const { handleError } = useErrorHandler();
   const [search, setSearch] = useState("");
-  const [expanded, setExpanded] = useState({ 1: true });
+  const [expanded, setExpanded] = useState({});
+  const {
+    templates: models,
+    loading,
+    error,
+  } = useTemplateLibrary({
+    onError: handleError,
+  });
 
   const handleNavClick = (item) => {
     setActiveNav(item);
@@ -200,26 +175,38 @@ export default function ModelosPage() {
   };
 
   useEffect(() => {
-    api
-      .get("/api/templates/list")
-      .then((resp) => {
-        setModels(normalizeTemplates(resp.data));
-      })
-      .catch((err) => {
-        handleError(err);
-        setModels([]);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
+    if (models.length === 0) {
+      setExpanded({});
+      return;
+    }
+
+    setExpanded((previousState) => {
+      if (Object.keys(previousState).length > 0) {
+        return previousState;
+      }
+
+      return {
+        [models[0].id]: true,
+      };
+    });
+  }, [models]);
 
   const toggle = (id) => setExpanded((p) => ({ ...p, [id]: !p[id] }));
+
+  const handleUseTemplate = (model, version = model.current) => {
+    navigate("/enviar", {
+      state: {
+        selectedTemplateId: model.id,
+        selectedTemplateVersion: version,
+      },
+    });
+  };
 
   const filtered = models.filter(
     (m) =>
       m.name.toLowerCase().includes(search.toLowerCase()) ||
-      m.category.toLowerCase().includes(search.toLowerCase()),
+      m.category.toLowerCase().includes(search.toLowerCase()) ||
+      m.tags.some((tag) => tag.toLowerCase().includes(search.toLowerCase())),
   );
 
   return (
@@ -284,6 +271,8 @@ export default function ModelosPage() {
 
             {/* Table */}
             <div className="table-wrap">
+              {loading && <p className="page-sub">Carregando modelos...</p>}
+              {!loading && error && <p className="page-sub">Erro ao carregar modelos: {error}</p>}
               <table>
                 <thead>
                   <tr>
@@ -297,6 +286,13 @@ export default function ModelosPage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {!loading && filtered.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="cell-muted">
+                        Nenhum modelo encontrado para a busca informada.
+                      </td>
+                    </tr>
+                  )}
                   {filtered.map((m) => (
                     <Fragment key={m.id}>
                       {/* Main row */}
@@ -327,7 +323,10 @@ export default function ModelosPage() {
                           </div>
                         </td>
                         <td className="cell-muted" data-label="Categoria">
-                          {m.category}
+                          <div>{m.category}</div>
+                          {m.tags.length > 0 && (
+                            <div className="model-file">{m.tags.join(", ")}</div>
+                          )}
                         </td>
                         <td data-label="Versões">
                           <div className="version-tags">
@@ -349,7 +348,12 @@ export default function ModelosPage() {
                         </td>
                         <td data-label="Ações">
                           <div className="actions-cell">
-                            <button className="act-link green">Usar</button>
+                            <button
+                              className="act-link green"
+                              onClick={() => handleUseTemplate(m)}
+                            >
+                              Usar
+                            </button>
                             <button className="act-link grey">Editar</button>
                             <button className="act-more">
                               <MoreIcon s={14} />
@@ -385,7 +389,10 @@ export default function ModelosPage() {
                             <td data-label="Ações">
                               <div className="actions-cell">
                                 {sv.status === "Ativa" && (
-                                  <button className="act-link green">
+                                  <button
+                                    className="act-link green"
+                                    onClick={() => handleUseTemplate(m, sv.ver)}
+                                  >
                                     Usar
                                   </button>
                                 )}
@@ -401,7 +408,7 @@ export default function ModelosPage() {
 
               {/* Table footer */}
               <div className="table-footer">
-                <span>Exibindo {filtered.length} de 24 modelos</span>
+                <span>Exibindo {filtered.length} de {models.length} modelos</span>
                 <div className="pagination">
                   <button className="page-btn">‹</button>
                   {[1, 2, 3].map((p) => (

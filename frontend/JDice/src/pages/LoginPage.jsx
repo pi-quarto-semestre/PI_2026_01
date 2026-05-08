@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { api } from "../../services/api";
+import { hasActiveSession, saveAuthSession } from "../../services/auth";
 import { StylesLoginPage } from "../css/StyleLoginPage";
 
 // SVG icons
@@ -25,14 +28,136 @@ const EyeIcon = ({ open }) =>
   );
 
 export default function LoginPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = location.state?.from?.pathname || "/dashboard";
   const [activeTab, setActiveTab] = useState("entrar");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [loginStatus, setLoginStatus] = useState({ type: "", text: "" });
+  const [registerStatus, setRegisterStatus] = useState({ type: "", text: "" });
+
+  useEffect(() => {
+    if (hasActiveSession()) {
+      navigate(redirectTo, { replace: true });
+    }
+  }, [navigate, redirectTo]);
+
+  const clearLoginStatus = () => setLoginStatus({ type: "", text: "" });
+  const clearRegisterStatus = () => setRegisterStatus({ type: "", text: "" });
+
+  const getRequestErrorMessage = (error, fallbackMessage) => {
+    if (!error.response) {
+      return "Nao foi possivel conectar ao servidor. Verifique se o backend esta ativo.";
+    }
+
+    if (error.response.status === 400) {
+      return fallbackMessage;
+    }
+
+    if (error.response.status === 401 || error.response.status === 403) {
+      return "Login ou senha invalidos.";
+    }
+
+    return error.response.data?.message || "Ocorreu um erro inesperado.";
+  };
+
+  const handleLoginSubmit = async (event) => {
+    event.preventDefault();
+    clearRegisterStatus();
+
+    if (!email.trim() || !password.trim()) {
+      setLoginStatus({
+        type: "error",
+        text: "Preencha o e-mail corporativo e a senha para entrar.",
+      });
+      return;
+    }
+
+    setIsLoggingIn(true);
+    clearLoginStatus();
+
+    try {
+      const normalizedLogin = email.trim();
+      const response = await api.post("/auth/login", {
+        login: normalizedLogin,
+        password,
+      });
+
+      saveAuthSession(response.data?.token, normalizedLogin);
+      navigate(redirectTo, { replace: true });
+    } catch (error) {
+      setLoginStatus({
+        type: "error",
+        text: getRequestErrorMessage(error, "Nao foi possivel concluir o login."),
+      });
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleRegisterSubmit = async (event) => {
+    event.preventDefault();
+    clearLoginStatus();
+
+    if (!registerEmail.trim() || !registerPassword.trim()) {
+      setRegisterStatus({
+        type: "error",
+        text: "Preencha o e-mail corporativo e a senha para solicitar acesso.",
+      });
+      return;
+    }
+
+    setIsRegistering(true);
+    clearRegisterStatus();
+
+    try {
+      const normalizedLogin = registerEmail.trim();
+
+      await api.post("/auth/register", {
+        login: normalizedLogin,
+        password: registerPassword,
+        role: "USER",
+      });
+
+      setEmail(normalizedLogin);
+      setPassword("");
+      setRegisterEmail("");
+      setRegisterPassword("");
+      setActiveTab("entrar");
+      setLoginStatus({
+        type: "success",
+        text: "Conta criada com sucesso. Entre para acessar a plataforma.",
+      });
+    } catch (error) {
+      setRegisterStatus({
+        type: "error",
+        text: getRequestErrorMessage(
+          error,
+          "Ja existe uma conta cadastrada para este e-mail.",
+        ),
+      });
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
+  const renderStatus = (status) => {
+    if (!status.text) {
+      return null;
+    }
+
+    return <p className={`status-message ${status.type}`}>{status.text}</p>;
+  };
 
   return (
     <>
-      <style>{<StylesLoginPage />}</style>
+      <StylesLoginPage />
       <div className="login-wrapper">
         {/* ── LEFT PANEL ── */}
         <div className="left-panel">
@@ -80,19 +205,21 @@ export default function LoginPage() {
               <button
                 className={`tab-btn ${activeTab === "entrar" ? "active" : ""}`}
                 onClick={() => setActiveTab("entrar")}
+                type="button"
               >
                 Entrar
               </button>
               <button
                 className={`tab-btn ${activeTab === "cadastrar" ? "active" : ""}`}
                 onClick={() => setActiveTab("cadastrar")}
+                type="button"
               >
                 Cadastrar
               </button>
             </div>
 
             {activeTab === "entrar" ? (
-              <>
+              <form className="auth-form" onSubmit={handleLoginSubmit}>
                 <h2 className="card-title">Bem-vindo de volta</h2>
                 <p className="card-subtitle">Acesse sua conta para gerenciar e-mails</p>
 
@@ -105,7 +232,11 @@ export default function LoginPage() {
                       className="field-input"
                       placeholder="nome@johndeere.com"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        clearLoginStatus();
+                      }}
+                      autoComplete="username"
                     />
                     <span className="input-icon"><MailIcon /></span>
                   </div>
@@ -120,7 +251,11 @@ export default function LoginPage() {
                       className="field-input"
                       placeholder="••••••••••••"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        clearLoginStatus();
+                      }}
+                      autoComplete="current-password"
                     />
                     <button
                       className="input-icon"
@@ -132,35 +267,42 @@ export default function LoginPage() {
                     </button>
                   </div>
                   <div className="forgot-row">
-                    <button className="forgot-link">Esqueci minha senha</button>
+                    <button className="forgot-link" type="button">Esqueci minha senha</button>
                   </div>
                 </div>
 
-                <button className="submit-btn">Entrar na plataforma</button>
+                {renderStatus(loginStatus)}
+
+                <button className="submit-btn" disabled={isLoggingIn} type="submit">
+                  {isLoggingIn ? "Entrando..." : "Entrar na plataforma"}
+                </button>
 
                 <p className="bottom-note">
                   Não tem conta?{" "}
-                  <a onClick={() => setActiveTab("cadastrar")}>
+                  <button type="button" onClick={() => setActiveTab("cadastrar")}>
                     Solicite acesso ao administrador
-                  </a>
+                  </button>
                 </p>
-              </>
+              </form>
             ) : (
-              <>
+              <form className="auth-form" onSubmit={handleRegisterSubmit}>
                 <h2 className="card-title">Criar conta</h2>
-                <p className="card-subtitle">Preencha os dados para solicitar acesso</p>
-
-                <div className="field-group">
-                  <label className="field-label">Nome completo</label>
-                  <div className="input-wrap">
-                    <input type="text" className="field-input" placeholder="Seu nome" />
-                  </div>
-                </div>
+                <p className="card-subtitle">Use seu e-mail corporativo para solicitar acesso</p>
 
                 <div className="field-group">
                   <label className="field-label">E-mail corporativo</label>
                   <div className="input-wrap">
-                    <input type="email" className="field-input" placeholder="nome@johndeere.com" />
+                    <input
+                      type="email"
+                      className="field-input"
+                      placeholder="nome@johndeere.com"
+                      value={registerEmail}
+                      onChange={(e) => {
+                        setRegisterEmail(e.target.value);
+                        clearRegisterStatus();
+                      }}
+                      autoComplete="username"
+                    />
                     <span className="input-icon"><MailIcon /></span>
                   </div>
                 </div>
@@ -172,6 +314,12 @@ export default function LoginPage() {
                       type={showPassword ? "text" : "password"}
                       className="field-input"
                       placeholder="Crie uma senha segura"
+                      value={registerPassword}
+                      onChange={(e) => {
+                        setRegisterPassword(e.target.value);
+                        clearRegisterStatus();
+                      }}
+                      autoComplete="new-password"
                     />
                     <button
                       className="input-icon"
@@ -183,13 +331,19 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                <button className="submit-btn">Solicitar acesso</button>
+                {renderStatus(registerStatus)}
+
+                <button className="submit-btn" disabled={isRegistering} type="submit">
+                  {isRegistering ? "Enviando..." : "Solicitar acesso"}
+                </button>
 
                 <p className="bottom-note">
                   Já tem uma conta?{" "}
-                  <a onClick={() => setActiveTab("entrar")}>Entrar</a>
+                  <button type="button" onClick={() => setActiveTab("entrar")}>
+                    Entrar
+                  </button>
                 </p>
-              </>
+              </form>
             )}
           </div>
         </div>

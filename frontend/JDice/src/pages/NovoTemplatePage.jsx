@@ -7,6 +7,7 @@ import { HEADER_NAV_ITEMS } from "../components/HeaderNav";
 import { api } from "../../services/api";
 import Footer from "../components/Footer";
 import { StylesNovoTemplatePage } from "../css/StyleNovoTemplatePage";
+import { saveUserTemplateMetadata } from "../hooks/useTemplateLibrary";
 
 /* ─────────────────────────────────────────────
    ICONS
@@ -281,6 +282,12 @@ export default function NovoTemplatePage() {
     if (!validate()) return;
     try {
       await criarTemplate();
+      saveUserTemplateMetadata({
+        name: nome,
+        version: versao,
+        category: categoria,
+        tags,
+      });
       setToast(true);
       setTimeout(() => {
         setToast(false);

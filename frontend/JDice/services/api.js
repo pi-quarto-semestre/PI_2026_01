@@ -1,8 +1,19 @@
 import axios from "axios";
+import { clearAuthSession, getAuthToken, hasActiveSession } from "./auth";
 
 // Criar instância do axios
 export const api = axios.create({
-  baseURL: "http://localhost:8080",
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? "/",
+});
+
+api.interceptors.request.use((config) => {
+  const token = getAuthToken();
+
+  if (token && hasActiveSession()) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
 });
 
 // Interceptor de resposta para tratar erros globalmente
@@ -20,6 +31,15 @@ api.interceptors.response.use(
 
     // Erros do servidor (4xx, 5xx)
     const status = error.response.status;
+    const requestUrl = error.config?.url ?? "";
+    const isAuthRequest =
+      requestUrl.includes("/auth/login") || requestUrl.includes("/auth/register");
+
+    if ((status === 401 || status === 403) && !isAuthRequest) {
+      clearAuthSession();
+      window.location.assign("/");
+      throw error;
+    }
 
     // Para erros 5xx (servidor), redirecionar automaticamente
     if (status >= 500) {

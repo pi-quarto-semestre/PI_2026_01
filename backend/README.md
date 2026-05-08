@@ -22,9 +22,9 @@ Não é necessário executar nenhum comando específico para baixar ou fazer bui
 - Na database criada, execute o Script `CreateDatabase.sql`, presente na raiz da pasta backend
 
 ### 4. Crie o arquivo `settings.ini`
-Duplique o arquivo `settings.exmple.ini` com o nome `settings.ini` e defina os parâmetros da sua aplicação.
+Duplique o arquivo `settings.exemplo.ini` com o nome `settings.ini` e defina os parâmetros da sua aplicação.
 
-Atenção especial para o usuário e a senha da sua instância do postgres
+Atenção especial para o usuário, a senha da sua instância do postgres e a chave `jwt.secret`
 
 ### 5. Execute o projeto
 Para a execução em runtime de teste, utilize a função de laucher de sua IDE de preferência

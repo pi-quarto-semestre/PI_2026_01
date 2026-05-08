@@ -1,5 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React from "react";
+import { useNavigate } from "react-router-dom";
+import { clearAuthSession, getAuthUserProfile, hasActiveSession } from "../../services/auth";
 
 const style = `
 
@@ -30,6 +32,13 @@ const style = `
     display: flex; align-items: center; justify-content: center;
     font-family: 'Sora', sans-serif; font-size: 11px; font-weight: 700; color: #1a1a1a;
   }
+  .logout-btn {
+    height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.08); color: #fff; cursor: pointer;
+    font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
+    transition: background .16s, border-color .16s;
+  }
+  .logout-btn:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.28); }
 
   /* ───────────────────────────── */
 /* 📱 TABLET (até 1024px) */
@@ -105,6 +114,15 @@ export default function HeaderNav({
   onNavClick,
   navItems = HEADER_NAV_ITEMS,
 }) {
+  const navigate = useNavigate();
+  const user = getAuthUserProfile();
+  const isAuthenticated = hasActiveSession();
+
+  const handleLogout = () => {
+    clearAuthSession();
+    navigate("/", { replace: true });
+  };
+
   return (
 
     <>
@@ -130,10 +148,15 @@ export default function HeaderNav({
 
       <div className="topbar-user">
         <div className="user-info">
-          <div className="user-name">Maria Alves</div>
-          <div className="user-role">Coordenadora de Mkt</div>
+          <div className="user-name">{user?.displayName ?? "John Deere"}</div>
+          <div className="user-role">{user?.subtitle ?? "Mail Manager"}</div>
         </div>
-        <div className="user-avatar">MA</div>
+        <div className="user-avatar">{user?.initials ?? "JD"}</div>
+        {isAuthenticated ? (
+          <button className="logout-btn" onClick={handleLogout} type="button">
+            Sair
+          </button>
+        ) : null}
       </div>
     </header>
     

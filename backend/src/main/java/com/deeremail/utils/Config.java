@@ -16,6 +16,7 @@ public class Config {
 	private static String sqlUrl;
 	private static String sqlUser;
 	private static String sqlPassword;
+	private static String jwtSecret;
 	private static int iterationCount;
 	private static int keySize;
 	private static int saltLength;
@@ -41,6 +42,7 @@ public class Config {
 		sqlUrl = prop.getProperty("sql.url");
 		sqlUser = prop.getProperty("sql.user");
 		sqlPassword = prop.getProperty("sql.password");
+		jwtSecret = prop.getProperty("jwt.secret");
 		iterationCount = Integer.parseInt(prop.getProperty("hash.iterationCount"));
 		keySize = Integer.parseInt(prop.getProperty("hash.keySize"));
 		saltLength = Integer.parseInt(prop.getProperty("hash.saltLength"));
@@ -83,6 +85,10 @@ public class Config {
 	
 	public static String getSqlPassword() {
 		return sqlPassword;
+	}
+
+	public static String getJwtSecret() {
+		return jwtSecret;
 	}
 	
 	public static int getIterationCount() {

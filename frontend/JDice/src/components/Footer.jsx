@@ -18,7 +18,7 @@ function Footer() {
     <>
     <style>{styles}</style>
     <footer className="footer">
-      John Deere Mail Manager — Plataforma de uso interno © 2025
+      John Deere Mail Manager — Plataforma de uso interno © 2026
     </footer>
     
     </>

@@ -6,6 +6,16 @@ import { getRoute } from "../hooks/navRoutes";
 import { HEADER_NAV_ITEMS } from "../components/HeaderNav";
 import { StyleDashboard } from "../css/StyleDashboard";
 import Footer from "../components/Footer";
+import { useErrorHandler } from "../hooks/useErrorHandler";
+import { useTemplateLibrary } from "../hooks/useTemplateLibrary";
+import LoadingSpinner from "../components/LoadingSpinner";
+import {
+  getUserTemplateActivity,
+  isSameMonth,
+} from "../../services/templateActivity";
+
+const RECENT_MODEL_TOP_COLORS = ["green-top", "yellow-top", "blue-top"];
+const RECENT_VERSION_TAGS = ["green", "yellow", "blue"];
 
 // ── Icons ──
 const FileIcon = ({ size = 16 }) => (
@@ -55,21 +65,6 @@ const CalendarIcon = ({ size = 16 }) => (
     <line x1="3" y1="10" x2="21" y2="10" />
   </svg>
 );
-const TrendUpIcon = ({ size = 16 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-    <polyline points="17 6 23 6 23 12" />
-  </svg>
-);
 const PlusIcon = ({ size = 16 }) => (
   <svg
     width={size}
@@ -116,47 +111,140 @@ const scheduled = [
   },
 ];
 
-const models = [
-  {
-    topColor: "green-top",
-    icon: "🌾",
-    name: "Campanha Sa...",
-    version: "v2.1",
-    tagStyle: "green",
-    cat: "Marketing Agrícola",
-    lastEdit: "28/03/2025",
-    sends: "32 envios realizados",
-  },
-  {
-    topColor: "yellow-top",
-    icon: "🚜",
-    name: "Lançamento S7l...",
-    version: "v1.0",
-    tagStyle: "yellow",
-    cat: "Produtos e Lançamentos",
-    lastEdit: "25/03/2025",
-    sends: "8 envios realizados",
-  },
-  {
-    topColor: "blue-top",
-    icon: "📄",
-    name: "Relatório Mensal",
-    version: "v4.1",
-    tagStyle: "blue",
-    cat: "Comunicados Internos",
-    lastEdit: "01/04/2025",
-    sends: "156 envios realizados",
-  },
-];
+const getTimestamp = (value) => {
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
+const formatDashboardDate = (value = new Date()) => {
+  const formattedValue = value.toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  return formattedValue.charAt(0).toUpperCase() + formattedValue.slice(1);
+};
+
+const formatDateTime = (value) => {
+  const timestamp = getTimestamp(value);
+
+  if (!timestamp) {
+    return "—";
+  }
+
+  return new Date(timestamp).toLocaleString("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+};
+
+const formatNumber = (value) => Number(value ?? 0).toLocaleString("pt-BR");
+
+const isModelActive = (model) =>
+  (model?.subVersions ?? []).some((version) => version.status === "Ativa");
+
+const getLatestTemplateSavedAt = (model) => {
+  const timestamps = (model?.subVersions ?? [])
+    .map((version) => getTimestamp(version?.savedAt))
+    .filter((timestamp) => timestamp > 0);
+
+  if (timestamps.length === 0) {
+    return "";
+  }
+
+  return new Date(Math.max(...timestamps)).toISOString();
+};
+
+const getScheduledCount = (entries = [], referenceDate = new Date()) =>
+  (Array.isArray(entries) ? entries : []).filter((entry) => {
+    const scheduledAt = getTimestamp(entry?.scheduledAt ?? entry?.sendAt);
+    return scheduledAt >= referenceDate.getTime();
+  }).length;
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState("Dashboard");
   const navItems = HEADER_NAV_ITEMS;
+  const { handleError } = useErrorHandler();
+  const {
+    templates: models,
+    loading,
+    error,
+  } = useTemplateLibrary({
+    onError: handleError,
+  });
+  const templateActivity = getUserTemplateActivity();
+  const sendsThisMonth = templateActivity.sends.filter((entry) =>
+    isSameMonth(entry?.sentAt),
+  );
+  const monthlySendCount = sendsThisMonth.length;
+  const monthlyRecipientCount = sendsThisMonth.reduce(
+    (total, entry) => total + (Number(entry?.recipientCount) || 0),
+    0,
+  );
+  const activeModelsCount = models.filter(isModelActive).length;
+  const updatedModelsThisMonth = models.filter((model) =>
+    isSameMonth(getLatestTemplateSavedAt(model)),
+  ).length;
+  const scheduledCount = getScheduledCount(templateActivity.scheduled);
+  const recentModels = [...models]
+    .filter((model) => model.sendCount > 0 && model.lastUsedAt)
+    .sort(
+      (left, right) => getTimestamp(right.lastUsedAt) - getTimestamp(left.lastUsedAt),
+    )
+    .slice(0, 3);
+
+  const stats = [
+    {
+      label: "Modelos Ativos",
+      value: loading ? "" : formatNumber(activeModelsCount),
+      sub: loading
+        ? ""
+        : activeModelsCount > 0
+          ? `${formatNumber(updatedModelsThisMonth)} atualizados neste mês`
+          : "Nenhum modelo ativo encontrado",
+      icon: FileIcon,
+      tone: "",
+      loading,
+    },
+    {
+      label: "Envios no Mês",
+      value: formatNumber(monthlySendCount),
+      sub:
+        monthlySendCount > 0
+          ? `${formatNumber(monthlyRecipientCount)} destinatários alcançados`
+          : "Nenhum envio concluído neste mês",
+      icon: MailBulkIcon,
+      tone: "",
+      loading: false,
+    },
+    {
+      label: "Agendados",
+      value: formatNumber(scheduledCount),
+      sub:
+        scheduledCount > 0
+          ? `${formatNumber(scheduledCount)} aguardando disparo`
+          : "Nenhum envio agendado",
+      icon: CalendarIcon,
+      tone: "green",
+      loading: false,
+    },
+  ];
 
   const handleNavClick = (item) => {
     setActiveNav(item);
     navigate(getRoute(item));
+  };
+
+  const handleUseTemplate = (model) => {
+    navigate("/enviar", {
+      state: {
+        selectedTemplateId: model.id,
+        selectedTemplateVersion: model.lastUsedVersion || model.current,
+      },
+    });
   };
 
   return (
@@ -172,96 +260,154 @@ export default function Dashboard() {
             navItems={navItems}
           />
 
-          {/* ── CONTENT ── */}
           <div className="content">
-            {/* Page Header */}
             <div className="page-header">
               <div>
                 <h1>Dashboard</h1>
-                <p className="page-date">Quarta-feira, 01 de abril de 2025</p>
+                <p className="page-date">{formatDashboardDate()}</p>
               </div>
-              <button className="btn-primary">
+              <button className="btn-primary" onClick={() => navigate("/enviar")}>
                 <PlusIcon size={14} />
                 Enviar E-mail
               </button>
             </div>
 
-            {/* Stats */}
             <div className="stat-grid">
-              <div className="stat-card">
-                <div className="stat-icon">
-                  <FileIcon size={20} />
-                </div>
-                <div className="stat-label">Modelos Ativos</div>
-                <div className="stat-value">24</div>
-                <div className="stat-sub">↑ 3 novos este mês</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-icon">
-                  <MailBulkIcon size={20} />
-                </div>
-                <div className="stat-label">Envios no Mês</div>
-                <div className="stat-value">1.847</div>
-                <div className="stat-sub">↑ 12% vs mês anterior</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-icon">
-                  <TrendUpIcon size={20} />
-                </div>
-                <div className="stat-label">Taxa de Abertura</div>
-                <div className="stat-value">68%</div>
-                <div className="stat-sub">↑ 5pp acima da média</div>
-              </div>
-              <div className="stat-card green">
-                <div className="stat-icon">
-                  <CalendarIcon size={20} />
-                </div>
-                <div className="stat-label">Agendados</div>
-                <div className="stat-value">7</div>
-                <div className="stat-sub">próximos 7 dias</div>
-              </div>
+              {stats.map((stat) => {
+                const Icon = stat.icon;
+
+                return (
+                  <div
+                    key={stat.label}
+                    className={`stat-card ${stat.tone}`.trim()}
+                  >
+                    <div className="stat-icon">
+                      <Icon size={20} />
+                    </div>
+                    <div className="stat-label">{stat.label}</div>
+                    {stat.loading ? (
+                      <LoadingSpinner label="Carregando..." size={20} stack />
+                    ) : (
+                      <>
+                        <div className="stat-value">{stat.value}</div>
+                        <div className="stat-sub">{stat.sub}</div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
-            {/* Models */}
             <div className="section-header">
               <h2>Modelos Recentes</h2>
-              <button className="see-all">Ver todos →</button>
+              <button className="see-all" onClick={() => navigate("/modelosPage")}>
+                Ver todos →
+              </button>
             </div>
             <p className="section-sub">
-              Acesso rápido aos seus modelos mais usados
+              Modelos usados em envios concluídos mais recentemente
             </p>
 
-            <div className="model-grid">
-              {models.map((m, i) => (
-                <div key={i} className={`model-card ${m.topColor}`}>
+            {error ? (
+              <p className="section-sub">Erro ao carregar modelos: {error}</p>
+            ) : loading ? (
+              <LoadingSpinner
+                label="Carregando modelos recentes..."
+                minHeight={180}
+                stack
+              />
+            ) : recentModels.length === 0 ? (
+              <div className="model-grid">
+                <div className="model-card green-top">
                   <div className="model-card-header">
-                    <div className="model-icon-wrap">{m.icon}</div>
+                    <div className="model-icon-wrap">📄</div>
                     <div className="model-meta">
                       <div className="model-name">
-                        {m.name}
-                        <span className={`version-tag ${m.tagStyle}`}>
-                          {m.version}
-                        </span>
+                        Nenhum modelo usado recentemente
                       </div>
-                      <div className="model-category">{m.cat}</div>
+                      <div className="model-category">
+                        Os modelos aparecerão aqui assim que um envio for
+                        concluído.
+                      </div>
                     </div>
                   </div>
                   <hr className="model-card-divider" />
                   <div className="model-info-row">
                     <span>
-                      Última edição: <strong>{m.lastEdit}</strong>
+                      O histórico é atualizado automaticamente quando um envio
+                      é realizado com sucesso.
                     </span>
-                    <span>{m.sends}</span>
                   </div>
                   <div className="model-card-actions">
-                    <button className="btn-use">Usar modelo</button>
-                    <button className="btn-view">Visualizar</button>
+                    <button
+                      className="btn-use"
+                      onClick={() => navigate("/enviar")}
+                    >
+                      Enviar e-mail
+                    </button>
+                    <button
+                      className="btn-view"
+                      onClick={() => navigate("/modelosPage")}
+                    >
+                      Ver modelos
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ) : (
+              <div className="model-grid">
+                {recentModels.map((model, index) => (
+                  <div
+                    key={model.id}
+                    className={`model-card ${
+                      RECENT_MODEL_TOP_COLORS[index % RECENT_MODEL_TOP_COLORS.length]
+                    }`}
+                  >
+                    <div className="model-card-header">
+                      <div className="model-icon-wrap">{model.icon}</div>
+                      <div className="model-meta">
+                        <div className="model-name">
+                          {model.name}
+                          <span
+                            className={`version-tag ${
+                              RECENT_VERSION_TAGS[index % RECENT_VERSION_TAGS.length]
+                            }`}
+                          >
+                            {model.lastUsedVersion || model.current || "Sem versão"}
+                          </span>
+                        </div>
+                        <div className="model-category">{model.category}</div>
+                      </div>
+                    </div>
+                    <hr className="model-card-divider" />
+                    <div className="model-info-row">
+                      <span>
+                        Último envio: <strong>{formatDateTime(model.lastUsedAt)}</strong>
+                      </span>
+                      <span>
+                        Última edição: <strong>{model.lastEdit || "—"}</strong>
+                      </span>
+                      <span>{model.sends || "1 envio realizado"}</span>
+                    </div>
+                    <div className="model-card-actions">
+                      <button
+                        className="btn-use"
+                        onClick={() => handleUseTemplate(model)}
+                      >
+                        Usar modelo
+                      </button>
+                      <button
+                        className="btn-view"
+                        onClick={() => navigate("/modelosPage")}
+                      >
+                        Visualizar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
-            {/* Scheduled */}
             <div className="section-header" style={{ marginBottom: 14 }}>
               <h2>Próximos Envios Agendados</h2>
             </div>
@@ -279,8 +425,8 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {scheduled.map((row, i) => (
-                    <tr key={i}>
+                  {scheduled.map((row, index) => (
+                    <tr key={index}>
                       <td data-label="Modelo">
                         <div className="row-indicator">
                           <div className={`dot ${row.dot}`} />
@@ -314,8 +460,7 @@ export default function Dashboard() {
               </table>
             </div>
           </div>
-          
-          {/* FOOTER */}
+
           <Footer />
         </div>
       </div>

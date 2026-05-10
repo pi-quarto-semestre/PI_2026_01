@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../../services/api";
 import { getAuthLogin } from "../../services/auth";
+import {
+  buildSendStatsByTemplate,
+  getUserTemplateActivity,
+} from "../../services/templateActivity";
 
 const TEMPLATE_LIBRARY_KEY = "jdice.template.library";
 
@@ -142,12 +146,16 @@ export const saveUserTemplateMetadata = ({
 export const normalizeTemplateTree = (
   root,
   templateMetadata = getUserTemplateMetadata(),
+  templateActivity = getUserTemplateActivity(),
 ) => {
+  const sendStatsByTemplate = buildSendStatsByTemplate(templateActivity.sends);
   const templates = getNodeChildren(root)
     .filter(isDirectoryNode)
     .map((templateNode) => {
       const metadata =
         templateMetadata[normalizeKey(templateNode?.name ?? "")] ?? {};
+      const activityStats =
+        sendStatsByTemplate[normalizeKey(templateNode?.name ?? "")] ?? {};
       const metadataVersions = metadata.versions ?? {};
       const versions = getNodeChildren(templateNode)
         .filter(isDirectoryNode)
@@ -190,7 +198,18 @@ export const normalizeTemplateTree = (
         tagStyle: versions.map(() => "grey"),
         current: currentVersion,
         lastEdit: lastEdited || formatDateTime(metadata.updatedAt),
-        sends: "",
+        sends:
+          activityStats.sendCount > 0
+            ? `${activityStats.sendCount} ${
+                activityStats.sendCount === 1
+                  ? "envio realizado"
+                  : "envios realizados"
+              }`
+            : "",
+        sendCount: activityStats.sendCount ?? 0,
+        recipientCount: activityStats.recipientCount ?? 0,
+        lastUsedAt: activityStats.lastUsedAt ?? "",
+        lastUsedVersion: activityStats.lastUsedVersion ?? "",
         subVersions: versions,
       };
     })
@@ -212,9 +231,12 @@ export const useTemplateLibrary = ({ onError } = {}) => {
     try {
       const response = await api.get("/api/templates/list");
       const templateMetadata = getUserTemplateMetadata();
+      const templateActivity = getUserTemplateActivity();
 
       setRawTree(response.data);
-      setTemplates(normalizeTemplateTree(response.data, templateMetadata));
+      setTemplates(
+        normalizeTemplateTree(response.data, templateMetadata, templateActivity),
+      );
     } catch (err) {
       const nextError =
         err.response?.data?.message ||

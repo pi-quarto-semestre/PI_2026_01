@@ -19,6 +19,7 @@ function App() {
           <Route path="/modelosPage" element={<ModelosPage />} />
           <Route path="/enviar" element={<EnviarPage />} />
           <Route path="/criarTemplate" element={<NovoTemplatePage />} />
+          <Route path="/editarTemplate" element={<NovoTemplatePage />} />
           <Route path="/apiConsuming" element={<ApiConsuming />} />
         </Route>
         {/* Rota catch-all para páginas não encontradas */}

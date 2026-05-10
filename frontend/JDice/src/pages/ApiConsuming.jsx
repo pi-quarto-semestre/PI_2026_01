@@ -1,5 +1,6 @@
 import { useErrorHandler } from "../hooks/useErrorHandler";
 import { useTemplateLibrary } from "../hooks/useTemplateLibrary";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 function ApiConsuming() {
   const { handleError } = useErrorHandler();
@@ -11,7 +12,7 @@ function ApiConsuming() {
     return (
       <div>
         <h1>Templates</h1>
-        <p>Carregando...</p>
+        <LoadingSpinner label="Carregando..." minHeight={120} stack />
       </div>
     );
   }

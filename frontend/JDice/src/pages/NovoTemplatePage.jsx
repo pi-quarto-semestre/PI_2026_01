@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import HeaderNav from "../components/HeaderNav";
 import { getRoute } from "../hooks/navRoutes";
@@ -147,13 +147,73 @@ function countWords(html) {
   return text ? text.split(" ").length : 0;
 }
 
+function normalizeEditorHtml(html = "") {
+  return String(html ?? "").trim();
+}
+
+function extractEditorBodyHtml(html = "") {
+  const rawHtml = String(html ?? "");
+  const bodyMatch = rawHtml.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+  return normalizeEditorHtml(bodyMatch ? bodyMatch[1] : rawHtml);
+}
+
+let quillScriptPromise = null;
+
+function resetQuillHost(host) {
+  if (!host) return;
+  host.innerHTML = "";
+}
+
+function loadQuillScript() {
+  if (window.Quill) {
+    return Promise.resolve(window.Quill);
+  }
+
+  if (quillScriptPromise) {
+    return quillScriptPromise;
+  }
+
+  quillScriptPromise = new Promise((resolve, reject) => {
+    const handleLoad = () => resolve(window.Quill);
+    const handleError = (error) => {
+      quillScriptPromise = null;
+      reject(error ?? new Error("Erro ao carregar a biblioteca do editor Quill."));
+    };
+
+    const existingScript = document.querySelector('script[data-quill-loader="true"]');
+
+    if (existingScript) {
+      existingScript.addEventListener("load", handleLoad, { once: true });
+      existingScript.addEventListener("error", handleError, { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src =
+      "https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js";
+    script.async = true;
+    script.dataset.quillLoader = "true";
+    script.addEventListener("load", handleLoad, { once: true });
+    script.addEventListener("error", handleError, { once: true });
+    document.head.appendChild(script);
+  });
+
+  return quillScriptPromise;
+}
+
 /* ─────────────────────────────────────────────
    MAIN COMPONENT
 ───────────────────────────────────────────── */
 export default function NovoTemplatePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeNav, setActiveNav] = useState("Modelos");
   const navItems = HEADER_NAV_ITEMS;
+  
+  // Detectar se está em modo edição
+  const editMode = location.pathname === "/editarTemplate";
+  const editingTemplate = location.state;
+  
   const [nome, setNome] = useState("");
   const [versao, setVersao] = useState("1.0");
   const [categoria, setCategoria] = useState("");
@@ -163,61 +223,172 @@ export default function NovoTemplatePage() {
   const [errors, setErrors] = useState({});
   const [toast, setToast] = useState(false);
   const [wordCount, setWordCount] = useState(0);
+  // eslint-disable-next-line no-unused-vars
+  const [loading, setLoading] = useState(editMode);
 
   const handleNavClick = (item) => {
     setActiveNav(item);
     navigate(getRoute(item));
   };
 
-  const quillRef = useRef(null);
+  const quillHostRef = useRef(null);
   const quillInst = useRef(null);
+  const quillTextChangeRef = useRef(null);
+  const isSyncingQuillRef = useRef(false);
+  const latestBodyHtmlRef = useRef("");
   const tagInputRef = useRef(null);
 
-  function initQuill() {
-    if (!quillRef.current || quillInst.current) return;
-    const q = new window.Quill(quillRef.current, {
-      theme: "snow",
-      placeholder:
-        "Escreva o corpo do e-mail aqui...\n\nUse as variáveis dinâmicas disponíveis abaixo para personalizar o conteúdo por destinatário.",
-      modules: {
-        toolbar: [
-          [{ header: [1, 2, 3, false] }],
-          ["bold", "italic", "underline", "strike"],
-          [{ color: [] }, { background: [] }],
-          [{ list: "ordered" }, { list: "bullet" }],
-          [{ align: [] }],
-          ["link", "blockquote", "code-block"],
-          ["clean"],
-        ],
-      },
-    });
-    quillInst.current = q;
-    q.on("text-change", () => {
-      const html = q.root.innerHTML;
-      setBodyHtml(html);
-      setWordCount(countWords(html));
-    });
+  // Carrega dados do template em modo edição
+  useEffect(() => {
+    if (editMode && editingTemplate) {
+      setNome(editingTemplate.templateName || "");
+      setCategoria(editingTemplate.templateCategory || "");
+      setTags(Array.isArray(editingTemplate.templateTags) ? editingTemplate.templateTags : []);
+      
+      // Incrementa a versão
+      const currentVer = editingTemplate.currentVersion || "1.0";
+      const nextVersion = incrementVersion(currentVer);
+      setVersao(nextVersion);
+      
+      // Carrega o HTML do template anterior
+      loadTemplateContent(editingTemplate.templateName, currentVer);
+    }
+  }, [editMode, editingTemplate]);
+
+  useEffect(() => {
+    setWordCount(countWords(bodyHtml));
+  }, [bodyHtml]);
+
+  // Função para incrementar versão (1.0 -> 1.1, 1.9 -> 2.0, etc)
+  function incrementVersion(ver) {
+    const parts = String(ver || "1.0").split(".");
+    let major = parseInt(parts[0]) || 1;
+    let minor = parseInt(parts[1]) || 0;
+    
+    minor += 1;
+    if (minor >= 10) {
+      major += 1;
+      minor = 0;
+    }
+    
+    return `${major}.${minor}`;
   }
 
-  /* Load Quill from CDN */
-  useEffect(() => {
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href =
-      "https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css";
-    document.head.appendChild(link);
+  // Carrega conteúdo HTML do template
+  async function loadTemplateContent(templateName, version) {
+    try {
+      const response = await api.get("/api/templates/template", {
+        params: {
+          name: templateName,
+          version: version,
+        },
+      });
+      
+      if (response.data && response.data.content) {
+        setBodyHtml(extractEditorBodyHtml(response.data.content));
+      }
+    } catch (error) {
+      console.error("Erro ao carregar conteúdo do template:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-    const script = document.createElement("script");
-    script.src =
-      "https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js";
-    script.onload = () => initQuill();
-    document.head.appendChild(script);
+  function syncQuillContents(q, nextHtml) {
+    const normalizedBodyHtml = normalizeEditorHtml(nextHtml);
+    const currentEditorHtml = normalizeEditorHtml(q.root.innerHTML);
+
+    if (normalizedBodyHtml === currentEditorHtml) {
+      return;
+    }
+
+    isSyncingQuillRef.current = true;
+
+    try {
+      if (normalizedBodyHtml) {
+        q.setContents(q.clipboard.convert(normalizedBodyHtml), "silent");
+      } else {
+        q.setText("", "silent");
+      }
+    } finally {
+      isSyncingQuillRef.current = false;
+    }
+  }
+
+  useEffect(() => {
+    const quillHost = quillHostRef.current;
+    let isDisposed = false;
+
+    async function initQuill() {
+      if (!quillHost || quillInst.current) return;
+
+      try {
+        const Quill = await loadQuillScript();
+
+        if (isDisposed || quillInst.current) return;
+
+        resetQuillHost(quillHost);
+
+        const editorElement = document.createElement("div");
+        quillHost.appendChild(editorElement);
+
+        const q = new Quill(editorElement, {
+          theme: "snow",
+          placeholder:
+            "Escreva o corpo do e-mail aqui...\n\nUse as variáveis dinâmicas disponíveis abaixo para personalizar o conteúdo por destinatário.",
+          modules: {
+            toolbar: [
+              [{ header: [1, 2, 3, false] }],
+              ["bold", "italic", "underline", "strike"],
+              [{ color: [] }, { background: [] }],
+              [{ list: "ordered" }, { list: "bullet" }],
+              [{ align: [] }],
+              ["link", "blockquote", "code-block"],
+              ["clean"],
+            ],
+          },
+        });
+
+        const handleTextChange = () => {
+          if (isSyncingQuillRef.current) return;
+          setBodyHtml(normalizeEditorHtml(q.root.innerHTML));
+        };
+
+        quillInst.current = q;
+        quillTextChangeRef.current = handleTextChange;
+        q.on("text-change", handleTextChange);
+        syncQuillContents(q, latestBodyHtmlRef.current);
+      } catch (error) {
+        console.error("Erro ao carregar a biblioteca do editor Quill.", error);
+      }
+    }
+
+    initQuill();
 
     return () => {
-      document.head.removeChild(script);
-      document.head.removeChild(link);
+      isDisposed = true;
+
+      const q = quillInst.current;
+      const handleTextChange = quillTextChangeRef.current;
+
+      if (q && handleTextChange) {
+        q.off("text-change", handleTextChange);
+      }
+
+      quillTextChangeRef.current = null;
+      quillInst.current = null;
+      resetQuillHost(quillHost);
     };
   }, []);
+
+  useEffect(() => {
+    latestBodyHtmlRef.current = bodyHtml;
+    
+    const q = quillInst.current;
+    if (!q) return;
+
+    syncQuillContents(q, bodyHtml);
+  }, [bodyHtml]);
 
   /* Insert variable at cursor */
   function insertVariable(varStr) {
@@ -254,17 +425,15 @@ export default function NovoTemplatePage() {
 
   async function criarTemplate() {
     // 1. Captura o HTML do editor Quill
-    const texto = quillInst.current?.root?.innerHTML || "";
+    const texto = normalizeEditorHtml(
+      quillInst.current?.root?.innerHTML || bodyHtml,
+    );
 
     // 2. Adiciona a estrutura básica HTML ao texto
-    const conteudoHTML = `
-          <!DOCTYPE html>
-          <html xmlns:th="http://www.thymeleaf.org">
-          <body>
-              ${texto}
-          </body>
-          </html>
-      `;
+    const conteudoHTML = `<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <body>${texto}</body>
+</html>`;
 
     // 3. Cria um objeto Blob com o conteúdo HTML
     const blob = new Blob([conteudoHTML], { type: "text/html" });
@@ -302,7 +471,7 @@ export default function NovoTemplatePage() {
 
   return (
     <>
-      <style>{<StylesNovoTemplatePage />}</style>
+      <StylesNovoTemplatePage />
 
       {/* Toast */}
       <div className={`toast ${toast ? "show" : ""}`}>
@@ -331,9 +500,9 @@ export default function NovoTemplatePage() {
                 <div className="breadcrumb">
                   <span>Modelos</span>
                   <span className="sep">/</span>
-                  <span className="current">Novo Template</span>
+                  <span className="current">{editMode ? "Editar Template" : "Novo Template"}</span>
                 </div>
-                <h1>Criar Template de E-mail</h1>
+                <h1>{editMode ? "Editar Template de E-mail" : "Criar Template de E-mail"}</h1>
               </div>
             </div>
 
@@ -516,7 +685,7 @@ export default function NovoTemplatePage() {
                       <div
                         className={`quill-wrapper ${errors.body ? "error" : ""}`}
                       >
-                        <div ref={quillRef} />
+                        <div ref={quillHostRef} />
                         <div className="editor-footer">
                           <span className="word-count">
                             {wordCount}{" "}
@@ -559,7 +728,7 @@ export default function NovoTemplatePage() {
                       <EyeIcon s={14} /> Pré-visualizar
                     </button>
                     <button className="btn-primary" onClick={handleSave}>
-                      <SaveIcon s={15} /> Salvar Template
+                      <SaveIcon s={15} /> {editMode ? "Salvar Nova Versão" : "Salvar Template"}
                     </button>
                   </div>
                 </div>

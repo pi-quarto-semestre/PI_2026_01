@@ -8,6 +8,7 @@ import Footer from "../components/Footer";
 import { useErrorHandler } from "../hooks/useErrorHandler";
 import { StylesModelosPage } from "../css/StyleModelosPage";
 import { useTemplateLibrary } from "../hooks/useTemplateLibrary";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 // ── Icons ──
 const GridIcon = ({ s = 16 }) => (
@@ -258,171 +259,207 @@ export default function ModelosPage() {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <button className="filter-btn">
-                Categoria <ChevDown s={11} />
-              </button>
-              <button className="filter-btn">
-                Versão <ChevDown s={11} />
-              </button>
-              <button className="filter-btn">
-                Status <ChevDown s={11} />
-              </button>
             </div>
 
             {/* Table */}
             <div className="table-wrap">
-              {loading && <p className="page-sub">Carregando modelos...</p>}
-              {!loading && error && <p className="page-sub">Erro ao carregar modelos: {error}</p>}
-              <table>
-                <thead>
-                  <tr>
-                    <th>Modelo</th>
-                    <th>Categoria</th>
-                    <th>Versões</th>
-                    <th>Versão Atual</th>
-                    <th>Última Edição</th>
-                    <th>Envios</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {!loading && filtered.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="cell-muted">
-                        Nenhum modelo encontrado para a busca informada.
-                      </td>
-                    </tr>
-                  )}
-                  {filtered.map((m) => (
-                    <Fragment key={m.id}>
-                      {/* Main row */}
+              {loading ? (
+                <LoadingSpinner label="Carregando modelos..." minHeight={220} />
+              ) : error ? (
+                <p className="page-sub">Erro ao carregar modelos: {error}</p>
+              ) : (
+                <>
+                  <table>
+                    <thead>
                       <tr>
-                        <td data-label="Modelo">
-                          <div className="model-cell">
-                            {m.subVersions ? (
-                              <button
-                                className={`expand-btn ${expanded[m.id] ? "open" : ""}`}
-                                onClick={() => toggle(m.id)}
-                              >
-                                {expanded[m.id] ? (
-                                  <ChevDown s={13} />
-                                ) : (
-                                  <ChevRight s={13} />
-                                )}
-                              </button>
-                            ) : (
-                              <span
-                                style={{ width: 20, display: "inline-block" }}
-                              />
-                            )}
-                            <div className="model-thumb">{m.icon}</div>
-                            <div>
-                              <div className="model-name-text">{m.name}</div>
-                              <div className="model-file">{m.file}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="cell-muted" data-label="Categoria">
-                          <div>{m.category}</div>
-                          {m.tags.length > 0 && (
-                            <div className="model-file">{m.tags.join(", ")}</div>
-                          )}
-                        </td>
-                        <td data-label="Versões">
-                          <div className="version-tags">
-                            {m.versions.map((v, i) => (
-                              <span key={i} className={`vtag ${m.tagStyle[i]}`}>
-                                {v}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td data-label="Versão Atual">
-                          <span className="current-badge">{m.current}</span>
-                        </td>
-                        <td className="cell-muted" data-label="Última Edição">
-                          {m.lastEdit}
-                        </td>
-                        <td className="cell-muted" data-label="Envios">
-                          {m.sends}
-                        </td>
-                        <td data-label="Ações">
-                          <div className="actions-cell">
-                            <button
-                              className="act-link green"
-                              onClick={() => handleUseTemplate(m)}
-                            >
-                              Usar
-                            </button>
-                            <button className="act-link grey">Editar</button>
-                            <button className="act-more">
-                              <MoreIcon s={14} />
-                            </button>
-                          </div>
-                        </td>
+                        <th>Modelo</th>
+                        <th>Categoria</th>
+                        <th>Versões</th>
+                        <th>Versão Atual</th>
+                        <th>Última Edição</th>
+                        <th>Envios</th>
+                        <th>Ações</th>
                       </tr>
-
-                      {/* Sub-version rows */}
-                      {expanded[m.id] &&
-                        m.subVersions &&
-                        m.subVersions.map((sv, si) => (
-                          <tr key={`${m.id}-sub-${si}`} className="sub-row">
-                            <td data-label="Versão">
-                              <div className="model-cell sub-model-cell">
-                                <div className="model-thumb sub">{sv.icon}</div>
+                    </thead>
+                    <tbody>
+                      {filtered.length === 0 && (
+                        <tr>
+                          <td colSpan={7} className="cell-muted">
+                            Nenhum modelo encontrado para a busca informada.
+                          </td>
+                        </tr>
+                      )}
+                      {filtered.map((m) => (
+                        <Fragment key={m.id}>
+                          <tr>
+                            <td data-label="Modelo">
+                              <div className="model-cell">
+                                {m.subVersions ? (
+                                  <button
+                                    className={`expand-btn ${expanded[m.id] ? "open" : ""}`}
+                                    onClick={() => toggle(m.id)}
+                                  >
+                                    {expanded[m.id] ? (
+                                      <ChevDown s={13} />
+                                    ) : (
+                                      <ChevRight s={13} />
+                                    )}
+                                  </button>
+                                ) : (
+                                  <span
+                                    style={{
+                                      width: 20,
+                                      display: "inline-block",
+                                    }}
+                                  />
+                                )}
+                                <div className="model-thumb">{m.icon}</div>
                                 <div>
-                                  <div className="model-name-text sub-model-title">{sv.ver}</div>
-                                  <div className="sub-desc">{sv.desc}</div>
+                                  <div className="model-name-text">
+                                    {m.name}
+                                  </div>
+                                  <div className="model-file">{m.file}</div>
                                 </div>
                               </div>
                             </td>
-                            <td colSpan={3} className="cell-muted" data-label="Detalhes">
-                              <div className="sub-date">{sv.date}</div>
+                            <td className="cell-muted" data-label="Categoria">
+                              <div>{m.category}</div>
+                              {m.tags.length > 0 && (
+                                <div className="model-file">
+                                  {m.tags.join(", ")}
+                                </div>
+                              )}
                             </td>
-                            <td colSpan={2} data-label="Status">
-                              <span
-                                className={`status-badge ${sv.status.toLowerCase()}`}
-                              >
-                                {sv.status}
-                              </span>
+                            <td data-label="Versões">
+                              <div className="version-tags">
+                                {m.versions.map((v, i) => (
+                                  <span
+                                    key={i}
+                                    className={`vtag ${m.tagStyle[i]}`}
+                                  >
+                                    {v}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                            <td data-label="Versão Atual">
+                              <span className="current-badge">{m.current}</span>
+                            </td>
+                            <td
+                              className="cell-muted"
+                              data-label="Última Edição"
+                            >
+                              {m.lastEdit}
+                            </td>
+                            <td className="cell-muted" data-label="Envios">
+                              {m.sends}
                             </td>
                             <td data-label="Ações">
                               <div className="actions-cell">
-                                {sv.status === "Ativa" && (
-                                  <button
-                                    className="act-link green"
-                                    onClick={() => handleUseTemplate(m, sv.ver)}
-                                  >
-                                    Usar
-                                  </button>
-                                )}
-                                <button className="act-link grey">Ver</button>
+                                <button
+                                  className="act-link green"
+                                  onClick={() => handleUseTemplate(m)}
+                                >
+                                  Usar
+                                </button>
+                                <button
+                                  className="act-link grey"
+                                  onClick={() =>
+                                    navigate("/editarTemplate", {
+                                      state: {
+                                        templateId: m.id,
+                                        templateName: m.name,
+                                        templateCategory: m.category,
+                                        templateTags: m.tags,
+                                        currentVersion: m.current,
+                                      },
+                                    })
+                                  }
+                                >
+                                  Editar
+                                </button>
+                                <button className="act-more">
+                                  <MoreIcon s={14} />
+                                </button>
                               </div>
                             </td>
                           </tr>
-                        ))}
-                    </Fragment>
-                  ))}
-                </tbody>
-              </table>
 
-              {/* Table footer */}
-              <div className="table-footer">
-                <span>Exibindo {filtered.length} de {models.length} modelos</span>
-                <div className="pagination">
-                  <button className="page-btn">‹</button>
-                  {[1, 2, 3].map((p) => (
-                    <button
-                      key={p}
-                      className={`page-btn ${activePage === p ? "active" : ""}`}
-                      onClick={() => setActivePage(p)}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                  <button className="page-btn">›</button>
-                </div>
-              </div>
+                          {expanded[m.id] &&
+                            m.subVersions &&
+                            m.subVersions.map((sv, si) => (
+                              <tr key={`${m.id}-sub-${si}`} className="sub-row">
+                                <td data-label="Versão">
+                                  <div className="model-cell sub-model-cell">
+                                    <div className="model-thumb sub">
+                                      {sv.icon}
+                                    </div>
+                                    <div>
+                                      <div className="model-name-text sub-model-title">
+                                        {sv.ver}
+                                      </div>
+                                      <div className="sub-desc">{sv.desc}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td
+                                  colSpan={3}
+                                  className="cell-muted"
+                                  data-label="Detalhes"
+                                >
+                                  <div className="sub-date">{sv.date}</div>
+                                </td>
+                                <td colSpan={2} data-label="Status">
+                                  <span
+                                    className={`status-badge ${sv.status.toLowerCase()}`}
+                                  >
+                                    {sv.status}
+                                  </span>
+                                </td>
+                                <td data-label="Ações">
+                                  <div className="actions-cell">
+                                    {sv.status === "Ativa" && (
+                                      <button
+                                        className="act-link green"
+                                        onClick={() =>
+                                          handleUseTemplate(m, sv.ver)
+                                        }
+                                      >
+                                        Usar
+                                      </button>
+                                    )}
+                                    <button className="act-link grey">
+                                      Ver
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                        </Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  <div className="table-footer">
+                    <span>
+                      Exibindo {filtered.length} de {models.length} modelos
+                    </span>
+                    <div className="pagination">
+                      <button className="page-btn">‹</button>
+                      {[1, 2, 3].map((p) => (
+                        <button
+                          key={p}
+                          className={`page-btn ${activePage === p ? "active" : ""}`}
+                          onClick={() => setActivePage(p)}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                      <button className="page-btn">›</button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Drop zone */}

@@ -7,8 +7,10 @@ import { HEADER_NAV_ITEMS } from "../components/HeaderNav";
 import Footer from "../components/Footer";
 import { StylesEnviarPages } from "../css/StyleEnviarPages";
 import { api } from "../../services/api";
+import { recordTemplateSend } from "../../services/templateActivity";
 import { useErrorHandler } from "../hooks/useErrorHandler";
 import { Stepper } from "../components/Stepper";
+import LoadingSpinner from "../components/LoadingSpinner";
 import DestinatariosPage from "./DestinatariosPage";
 import { useTemplateLibrary } from "../hooks/useTemplateLibrary";
 
@@ -323,9 +325,7 @@ export default function EnviarPage() {
     [],
   );
 
-  const templateVariablesText = templateLoading
-    ? "Carregando variáveis do modelo..."
-    : templateError
+  const templateVariablesText = templateError
       ? templateError
       : currentModel && versao
         ? templateParameters.length > 0
@@ -420,6 +420,13 @@ export default function EnviarPage() {
         type: "success",
         title: "Envio concluído",
         message: response.data || "O e-mail foi enviado com sucesso.",
+      });
+      recordTemplateSend({
+        name: currentModel.name,
+        version: versao,
+        category: currentModel.category,
+        recipientCount: toEmails.length + ccEmails.length,
+        subject: assunto.trim(),
       });
 
       const esperar = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -531,9 +538,7 @@ export default function EnviarPage() {
                         disabled={loading}
                       >
                         <option value="" disabled>
-                          {loading
-                            ? "Carregando modelos..."
-                            : "Selecione um modelo..."}
+                          Selecione um modelo...
                         </option>
                         {models.map((m) => (
                           <option key={m.id} value={m.id}>
@@ -552,6 +557,13 @@ export default function EnviarPage() {
                     )}
                     {templatesError && (
                       <span className="field-error">{templatesError}</span>
+                    )}
+                    {loading && (
+                      <LoadingSpinner
+                        label="Carregando modelos..."
+                        size={16}
+                        inline
+                      />
                     )}
                   </div>
 
@@ -625,7 +637,17 @@ export default function EnviarPage() {
                             : ""}
                         </div>
                       )}
-                      <div className="m-vars">{templateVariablesText}</div>
+                      <div className="m-vars">
+                        {templateLoading ? (
+                          <LoadingSpinner
+                            label="Carregando variáveis do modelo..."
+                            size={14}
+                            inline
+                          />
+                        ) : (
+                          templateVariablesText
+                        )}
+                      </div>
                     </div>
                     <button className="btn-preview" disabled={!currentModel}>
                       Pré-visualizar →
@@ -646,7 +668,11 @@ export default function EnviarPage() {
                   </div>
 
                   {templateLoading ? (
-                    <p className="section-sub">Carregando variáveis do template...</p>
+                    <LoadingSpinner
+                      label="Carregando variáveis do template..."
+                      minHeight={120}
+                      stack
+                    />
                   ) : templateError ? (
                     <span className="field-error">{templateError}</span>
                   ) : !currentModel || !versao ? (
@@ -707,7 +733,16 @@ export default function EnviarPage() {
                     onClick={enviarEmail}
                     disabled={isSending}
                   >
-                    {isSending ? "Enviando..." : "✈ Confirmar Envio"}
+                    {isSending ? (
+                      <LoadingSpinner
+                        label="Enviando..."
+                        size={16}
+                        inline
+                        light
+                      />
+                    ) : (
+                      "✈ Confirmar Envio"
+                    )}
                   </button>
                 </div>
               </div>

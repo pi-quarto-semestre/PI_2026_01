@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../../services/api";
 import { hasActiveSession, saveAuthSession } from "../../services/auth";
 import { StylesLoginPage } from "../css/StyleLoginPage";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 // SVG icons
 const MailIcon = () => (
@@ -273,9 +274,13 @@ export default function LoginPage() {
 
                 {renderStatus(loginStatus)}
 
-                <button className="submit-btn" disabled={isLoggingIn} type="submit">
-                  {isLoggingIn ? "Entrando..." : "Entrar na plataforma"}
-                </button>
+                  <button className="submit-btn" disabled={isLoggingIn} type="submit">
+                    {isLoggingIn ? (
+                      <LoadingSpinner label="Entrando..." size={16} inline light />
+                    ) : (
+                      "Entrar na plataforma"
+                    )}
+                  </button>
 
                 <p className="bottom-note">
                   Não tem conta?{" "}
@@ -334,7 +339,11 @@ export default function LoginPage() {
                 {renderStatus(registerStatus)}
 
                 <button className="submit-btn" disabled={isRegistering} type="submit">
-                  {isRegistering ? "Enviando..." : "Solicitar acesso"}
+                  {isRegistering ? (
+                    <LoadingSpinner label="Enviando..." size={16} inline light />
+                  ) : (
+                    "Solicitar acesso"
+                  )}
                 </button>
 
                 <p className="bottom-note">

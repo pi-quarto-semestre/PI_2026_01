@@ -1,8 +1,9 @@
 package com.deeremail.DTOs;
 
+import java.io.Serializable;
 import java.util.Map;
 
-public class SendMailRequest {
+public class SendMailRequest implements Serializable{
 
     private String name;
     private String version;

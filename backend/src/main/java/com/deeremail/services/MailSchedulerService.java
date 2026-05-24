@@ -31,6 +31,7 @@ public class MailSchedulerService {
         JobDetail jobDetail =
             JobBuilder.newJob(SendMailJob.class)
                 .withIdentity(jobId)
+                .requestRecovery(true)
                 .usingJobData(dataMap)
                 .build();
 

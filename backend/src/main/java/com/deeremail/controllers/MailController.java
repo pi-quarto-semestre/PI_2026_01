@@ -2,10 +2,13 @@ package com.deeremail.controllers;
 
 import java.io.IOException;
 
+import org.quartz.SchedulerException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.deeremail.DTOs.ScheduleMailRequest;
 import com.deeremail.DTOs.SendMailRequest;
+import com.deeremail.services.MailSchedulerService;
 import com.deeremail.services.MailService;
 
 import jakarta.mail.MessagingException;
@@ -16,9 +19,12 @@ import jakarta.mail.MessagingException;
 public class MailController {
 
     private final MailService mailService;
+    
+    private final MailSchedulerService mailSchedulerService;
 
-    public MailController(MailService mailService) {
+    public MailController(MailService mailService, MailSchedulerService mailSchedulerService) {
         this.mailService = mailService;
+        this.mailSchedulerService = mailSchedulerService;
     }
 
     @PostMapping("/sendNow")
@@ -30,6 +36,18 @@ public class MailController {
 
         return ResponseEntity.ok(
             "Mensagem enviada com sucesso!"
+        );
+    }
+
+    @PostMapping("/schedule")
+    public ResponseEntity<String> scheduleMail(
+        @RequestBody ScheduleMailRequest request
+    ) throws SchedulerException {
+
+        mailSchedulerService.scheduleMail(request);
+
+        return ResponseEntity.ok(
+            "Email agendado com sucesso!"
         );
     }
 }

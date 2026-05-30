@@ -74,8 +74,7 @@ const XIcon = ({ s = 12 }) => (
 
 const formatVariableToken = (variable) => `{${variable}}`;
 
-const formatVariableName = (variable) =>
-  variable.replace(/[_-]+/g, " ").trim();
+const formatVariableName = (variable) => variable.replace(/[_-]+/g, " ").trim();
 
 const buildVariableState = (parameters, currentValues = {}) =>
   parameters.reduce((acc, parameter) => {
@@ -91,14 +90,14 @@ export default function EnviarPage() {
   });
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeNav, setActiveNav] = useState("Envios"); 
+  const [activeNav, setActiveNav] = useState("Envios");
   const destinatariosRef = useRef(null);
   const routeSelectionApplied = useRef(false);
 
-  const [selectedModel, setSelectedModel] = useState(""); 
+  const [selectedModel, setSelectedModel] = useState("");
   const [assunto, setAssunto] = useState("");
-  const [versions, setVersions] = useState([]); 
-  const [versao, setVersao] = useState(""); 
+  const [versions, setVersions] = useState([]);
+  const [versao, setVersao] = useState("");
 
   const [templateData, setTemplateData] = useState({
     content: "",
@@ -193,15 +192,17 @@ export default function EnviarPage() {
       return;
     }
 
-    const versionExists = availableVersions.some((version) => version.ver === versao);
+    const versionExists = availableVersions.some(
+      (version) => version.ver === versao,
+    );
 
     if (versionExists) {
       return;
     }
 
     const nextVersion =
-      availableVersions.find((version) => version.ver === preferredVersion)?.ver ||
-      availableVersions[0].ver;
+      availableVersions.find((version) => version.ver === preferredVersion)
+        ?.ver || availableVersions[0].ver;
 
     setVersao(nextVersion);
     setTemplateLoading(true);
@@ -326,14 +327,14 @@ export default function EnviarPage() {
   );
 
   const templateVariablesText = templateError
-      ? templateError
-      : currentModel && versao
-        ? templateParameters.length > 0
-          ? `${templateParameters.length} variáveis identificadas: ${templateParameters
-              .map(formatVariableToken)
-              .join(", ")}`
-          : "Nenhuma variável identificada neste modelo."
-        : "Selecione um modelo e uma versão para carregar as variáveis.";
+    ? templateError
+    : currentModel && versao
+      ? templateParameters.length > 0
+        ? `${templateParameters.length} variáveis identificadas: ${templateParameters
+            .map(formatVariableToken)
+            .join(", ")}`
+        : "Nenhuma variável identificada neste modelo."
+      : "Selecione um modelo e uma versão para carregar as variáveis.";
 
   const validateForm = () => {
     const nextErrors = {
@@ -383,16 +384,6 @@ export default function EnviarPage() {
 
     const dadosDestinatarios = destinatariosRef.current.getFormData();
 
-    if (dadosDestinatarios.schedMode === "sched") {
-      setSubmitFeedback({
-        type: "error",
-        title: "",
-        message:
-          "O backend disponível nesta tela suporta apenas envio imediato no momento.",
-      });
-      return;
-    }
-
     const toEmails = dadosDestinatarios.toChips
       .map((chip) => chip.label?.trim())
       .filter(Boolean);
@@ -400,34 +391,54 @@ export default function EnviarPage() {
       .map((chip) => chip.label?.trim())
       .filter(Boolean);
 
-    const payload = new URLSearchParams();
-    payload.append("name", currentModel.name);
-    payload.append("version", versao);
-    payload.append("subject", assunto.trim());
-    payload.append("sendTo", toEmails.join(","));
-    ccEmails.forEach((email) => payload.append("sendCcTo", email));
-    payload.append("templateParams", JSON.stringify(templateVariables));
+    const mailPayload = {
+      name: currentModel.name,
+      version: versao,
+      subject: assunto.trim(),
+      sendTo: toEmails.join(","),
+      sendCcTo: ccEmails,
+      templateParams: templateVariables,
+    };
+
+    const isScheduled = dadosDestinatarios.schedMode === "sched";
+    const requestPayload = isScheduled
+      ? {
+          mail: mailPayload,
+          sendAt: `${dadosDestinatarios.sendDate}T${dadosDestinatarios.sendTime}:00`,
+        }
+      : mailPayload;
 
     try {
       setIsSending(true);
-      const response = await api.post("/api/mail/sendNow", payload, {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
+      const response = await api.post(
+        `/api/mail/${isScheduled ? "schedule" : "sendNow"}`,
+        requestPayload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
         },
-      });
+      );
 
       setSubmitFeedback({
         type: "success",
-        title: "Envio concluído",
-        message: response.data || "O e-mail foi enviado com sucesso.",
+        title: isScheduled ? "Agendamento concluído" : "Envio concluído",
+        message:
+          response.data ||
+          (isScheduled
+            ? "O e-mail foi agendado com sucesso."
+            : "O e-mail foi enviado com sucesso."),
       });
-      recordTemplateSend({
-        name: currentModel.name,
-        version: versao,
-        category: currentModel.category,
-        recipientCount: toEmails.length + ccEmails.length,
-        subject: assunto.trim(),
-      });
+
+      if (!isScheduled) {
+        recordTemplateSend({
+          name: currentModel.name,
+          version: versao,
+          category: currentModel.category,
+          recipientCount: toEmails.length + ccEmails.length,
+          subject: assunto.trim(),
+        });
+      }
 
       const esperar = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       await esperar(2000);
@@ -438,7 +449,6 @@ export default function EnviarPage() {
       });
       await esperar(2000);
       navigate("/dashboard");
-
     } catch (err) {
       const message =
         err.response?.data ||
@@ -464,7 +474,11 @@ export default function EnviarPage() {
       <style>{<StylesEnviarPages />}</style>
       {submitFeedback.type === "success" && (
         <div className="feedback-modal-overlay">
-          <div className="feedback-modal" role="alertdialog" aria-live="assertive">
+          <div
+            className="feedback-modal"
+            role="alertdialog"
+            aria-live="assertive"
+          >
             <div className="feedback-modal-icon">✓</div>
             <h2>{submitFeedback.title}</h2>
             <p>{submitFeedback.message}</p>
@@ -505,7 +519,6 @@ export default function EnviarPage() {
                     </div>
                   </div>
 
-                  
                   <div className="field">
                     <label>Assunto do e-mail:</label>
                     <input
